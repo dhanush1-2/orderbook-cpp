@@ -1,0 +1,12 @@
+build/
+build-*/
+.cache/
+compile_commands.json
+*.o
+*.a
+*.dSYM/
+perf.data*
+callgrind.out.*
+cachegrind.out.*
+bench/results/*.raw
+.DS_Store
