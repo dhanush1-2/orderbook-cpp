@@ -1,0 +1,12 @@
+{
+  "ops": 200000,
+  "capacity": 262144,
+  "instructions": {
+    "rest_only": 109189249,
+    "cross_shallow": 106083493,
+    "cross_deep": 112140532,
+    "cancel_heavy": 239501132,
+    "mixed_realistic": 279468533,
+    "worst_case_sweep": 126761251
+  }
+}

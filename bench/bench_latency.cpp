@@ -64,6 +64,7 @@ void run_scenario(Scenario sc, const Options& opt) {
 
     Histogram service(opt.ops);
     Histogram response(opt.ops);
+    double    clean_batched_ns = 0.0;
 
     // Warm-up: caches, branch predictor, and the first pass over the arena.
     for (std::size_t i = 0; i < kWarmup; ++i) {
@@ -75,6 +76,32 @@ void run_scenario(Scenario sc, const Options& opt) {
     const Clock& clk = Clock::instance();
     const double period_ticks =
         opt.target_rate_hz > 0.0 ? static_cast<double>(clk.counter_hz()) / opt.target_rate_hz : 0.0;
+
+    // CLEAN batched cost: one timestamp pair around a loop with NO per-operation
+    // timestamping. This matters. Measuring the batched cost across the
+    // distribution loop below would include that loop's own two serialized clock
+    // reads, which cost ~9-19 ns each on this hardware. The first version of this
+    // harness did exactly that and reported 66 ns/op where the engine costs ~30.
+    // The gap between the two figures below IS the harness overhead, and it is
+    // printed so a reader can see it rather than take the number on trust.
+    {
+        EngineT            warm{};
+        std::vector<Event> s2(buf_cap);
+        EventBuffer        b2(s2.data(), s2.size());
+        for (std::size_t i = 0; i < kWarmup; ++i) {
+            b2.clear();
+            warm.submit(stream[i], b2);
+            do_not_optimize(b2.size());
+        }
+        const std::uint64_t c0 = Clock::raw_serialized();
+        for (std::size_t i = 0; i < opt.ops; ++i) {
+            b2.clear();
+            warm.submit(stream[kWarmup + i], b2);
+            do_not_optimize(b2.size());
+        }
+        const std::uint64_t c1 = Clock::raw_serialized();
+        clean_batched_ns = Clock::instance().ticks_to_ns(c1 - c0) / static_cast<double>(opt.ops);
+    }
 
     reset_alloc_count();
     const std::uint64_t t_origin    = Clock::raw_serialized();
@@ -102,11 +129,12 @@ void run_scenario(Scenario sc, const Options& opt) {
     const std::uint64_t batch_end = Clock::raw_serialized();
     const std::size_t   allocs    = alloc_count();
 
-    // Batched per-operation cost: one timestamp pair over the whole run, so the
-    // 41.67 ns quantization cancels completely. This is the number to trust for
-    // "how much does one operation cost"; the distribution is for tail shape.
-    const double batched_ns =
+    // Cost per op of the DISTRIBUTION loop, which includes this harness's own two
+    // serialized clock reads. Reported next to clean_batched_ns so the difference
+    // between them - the harness overhead - is visible instead of hidden.
+    const double instrumented_ns =
         clk.ticks_to_ns(batch_end - batch_begin) / static_cast<double>(opt.ops);
+    const double batched_ns = clean_batched_ns;
 
     const double oh = clk.overhead_ns_serialized();
     const auto   ns = [&](std::uint32_t ticks) { return clk.ticks_to_ns(ticks) - oh; };
@@ -132,14 +160,16 @@ void run_scenario(Scenario sc, const Options& opt) {
         "\"seed\":%llu,\"allocations\":%zu,\"saturated\":%zu,"
         "\"clock_resolution_ns\":%.4f,\"clock_overhead_ns\":%.4f,"
         "\"frac_below_clock_resolution\":%.4f,\"p50_below_clock_resolution\":%s,"
-        "\"batched_ns_per_op\":%.2f,"
+        "\"batched_ns_per_op\":%.2f,\"instrumented_ns_per_op\":%.2f,"
+        "\"harness_overhead_ns_per_op\":%.2f,"
         "\"service_ns\":{\"p50\":%.1f,\"p90\":%.1f,\"p99\":%.1f,\"p99_9\":%.1f,"
         "\"p99_99\":%.1f,\"min\":%.1f,\"max\":%.1f}",
         name(sc), opt.reference ? "reference" : "fast", opt.ops, kWarmup,
         static_cast<unsigned long long>(opt.seed), allocs, service.saturated(), clk.resolution_ns(),
-        oh, below_frac, p50_unreliable ? "true" : "false", batched_ns, ns(service.percentile(50.0)),
-        ns(service.percentile(90.0)), ns(service.percentile(99.0)), ns(service.percentile(99.9)),
-        ns(service.percentile(99.99)), ns(service.min()), ns(service.max()));
+        oh, below_frac, p50_unreliable ? "true" : "false", batched_ns, instrumented_ns,
+        instrumented_ns - batched_ns, ns(service.percentile(50.0)), ns(service.percentile(90.0)),
+        ns(service.percentile(99.0)), ns(service.percentile(99.9)), ns(service.percentile(99.99)),
+        ns(service.min()), ns(service.max()));
 
     if (period_ticks > 0.0) {
         std::printf(
@@ -150,7 +180,10 @@ void run_scenario(Scenario sc, const Options& opt) {
     }
     std::printf("}\n");
 
-    if (allocs != 0) {
+    // Binds on FastEngine ONLY. ReferenceEngine is supposed to allocate: std::map
+    // plus std::list is 2 allocations per resting order, which is exactly what the
+    // arena removes.
+    if (!opt.reference && allocs != 0) {
         std::fprintf(stderr,
                      "FATAL: %zu allocations during the measured window for %s. "
                      "Every number above is contaminated.\n",

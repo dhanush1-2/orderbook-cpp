@@ -11,3 +11,11 @@ target_link_libraries(ob_alloc_counter PRIVATE ob_warnings)
 
 add_executable(ob_bench_latency bench_latency.cpp)
 target_link_libraries(ob_bench_latency PRIVATE ob ob_bench ob_alloc_counter)
+
+add_executable(ob_bench_throughput bench_throughput.cpp)
+target_link_libraries(ob_bench_throughput PRIVATE ob ob_bench ob_alloc_counter)
+
+# No alloc_counter here: counting allocations would itself change the instruction
+# count, and this binary exists to make that count stable.
+add_executable(ob_cachegrind_probe cachegrind_probe.cpp)
+target_link_libraries(ob_cachegrind_probe PRIVATE ob ob_bench)
