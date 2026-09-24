@@ -122,6 +122,48 @@ private:
         return opp != kNoPrice && crosses(c.side, c.price, opp);
     }
 
+    Event trade_event(OrderId taker, OrderId maker, Ticks px, Qty qty) {
+        Event e = base(EventType::Trade, taker);
+        e.maker_id = maker;
+        e.price = px;
+        e.qty = qty;
+        return e;
+    }
+
+    // Matches `c` against `book` (the opposite side), consuming `remaining`.
+    // Emits Trade per fill, and Filled for each maker it fully consumes.
+    template <class BookMap>
+    void match_into(BookMap& book, const Command& c, Qty& remaining, EventBuffer& out) {
+        while (remaining > 0 && !book.empty()) {
+            const auto lit = book.begin();  // best price on this side
+            const Ticks level_px = lit->first;
+
+            // A Market order ignores price entirely; everything else must cross.
+            if (c.order_type != OrderType::Market && !crosses(c.side, c.price, level_px)) {
+                break;
+            }
+
+            Level& level = lit->second;
+            while (remaining > 0 && !level.empty()) {
+                RefOrder& maker = level.front();  // FIFO: oldest fills first
+                const Qty fill = std::min(remaining, maker.remaining);
+
+                remaining -= fill;
+                maker.remaining -= fill;
+                out.push(trade_event(c.id, maker.id, level_px, fill));
+
+                if (maker.remaining == 0) {
+                    out.push(base(EventType::Filled, maker.id));
+                    live_.erase(maker.id);
+                    level.pop_front();
+                }
+            }
+            if (level.empty()) {
+                book.erase(lit);
+            }
+        }
+    }
+
     void rest(const Command& c, Qty remaining) {
         const Seq arrival = arrival_counter_++;
         if (c.side == Side::Buy) {
@@ -141,12 +183,28 @@ private:
         out.push(base(EventType::Accepted, c.id));
         high_water_ = c.id;  // only an Accepted advances the mark
 
-        // Matching arrives in Task 7. For now every accepted order that can rest
-        // does so at its full quantity.
+        Qty remaining = c.qty;
+
+        // PostOnly never matches: validation already rejected it if it would cross.
+        if (c.order_type != OrderType::PostOnly) {
+            if (c.side == Side::Buy) {
+                match_into(asks_, c, remaining, out);
+            } else {
+                match_into(bids_, c, remaining, out);
+            }
+        }
+
+        if (remaining == 0) {
+            out.push(base(EventType::Filled, c.id));
+            return;
+        }
+
+        // Market/Ioc/Fok remainders are handled in Task 9. For now only the
+        // resting types have a defined remainder behavior.
         const bool can_rest =
             c.order_type == OrderType::Limit || c.order_type == OrderType::PostOnly;
         if (can_rest) {
-            rest(c, c.qty);
+            rest(c, remaining);
         }
     }
 
