@@ -18,6 +18,7 @@ add_executable(ob_tests
     test_reference_matching.cpp
     test_reference_cancel.cpp
     test_reference_order_types.cpp
+    test_edge_cases.cpp
 )
 target_link_libraries(ob_tests PRIVATE ob GTest::gtest_main)
 
@@ -25,6 +26,7 @@ target_link_libraries(ob_tests PRIVATE ob GTest::gtest_main)
 # via CMAKE_CXX_FLAGS_RELEASE; target options land after it on the command line,
 # so this undefines it for the test binary only.
 target_compile_options(ob_tests PRIVATE -UNDEBUG)
+target_include_directories(ob_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 include(GoogleTest)
 gtest_discover_tests(ob_tests)
