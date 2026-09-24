@@ -1,0 +1,68 @@
+[
+  {
+    "scenario": "cancel_heavy",
+    "engine": "fast",
+    "metric": "ops_per_sec",
+    "median": 102519541,
+    "min": 98910426,
+    "max": 102775169,
+    "spread": 0.0377,
+    "runs": 5,
+    "valid": true
+  },
+  {
+    "scenario": "cross_deep",
+    "engine": "fast",
+    "metric": "ops_per_sec",
+    "median": 38972512,
+    "min": 38633933,
+    "max": 39367961,
+    "spread": 0.0188,
+    "runs": 5,
+    "valid": true
+  },
+  {
+    "scenario": "cross_shallow",
+    "engine": "fast",
+    "metric": "ops_per_sec",
+    "median": 69750381,
+    "min": 66864775,
+    "max": 70899377,
+    "spread": 0.0578,
+    "runs": 5,
+    "valid": true
+  },
+  {
+    "scenario": "mixed_realistic",
+    "engine": "fast",
+    "metric": "ops_per_sec",
+    "median": 34761566,
+    "min": 32397613,
+    "max": 34998211,
+    "spread": 0.0748,
+    "runs": 5,
+    "valid": true
+  },
+  {
+    "scenario": "rest_only",
+    "engine": "fast",
+    "metric": "ops_per_sec",
+    "median": 129580257,
+    "min": 125590374,
+    "max": 131042415,
+    "spread": 0.0421,
+    "runs": 5,
+    "valid": true
+  },
+  {
+    "scenario": "worst_case_sweep",
+    "engine": "fast",
+    "metric": "ops_per_sec",
+    "median": 39863770,
+    "min": 39057375,
+    "max": 39927893,
+    "spread": 0.0218,
+    "runs": 5,
+    "valid": true
+  }
+]

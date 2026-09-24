@@ -4,10 +4,11 @@ A limit order book and matching engine in C++20. Price-time priority, five order
 types, deterministic event output, and a measurement harness built to survive
 someone attacking it.
 
-**Status: Phase 2 substantially complete.** `FastEngine` matches at **~29 ns per
-operation / 33 M ops per second** on the realistic workload, agrees with the
-reference engine over 10^7 generated operations plus coverage-guided fuzzing, and is
-gated against regression by deterministic instruction counts.
+**Status: Phase 2 complete.** `FastEngine` matches at **28.8 ns per operation /
+34.8 M ops per second** on the realistic workload and **9.8 ns / 102 M ops per
+second** on the cancel-heavy one, agrees with the reference engine over 10^7
+generated operations plus coverage-guided fuzzing, and carries a documented
+optimization arc including the candidate that was measured and rejected.
 
 ## What it does
 
@@ -60,22 +61,35 @@ Five layers, weakest to strongest:
 
 Full results, method and caveats: [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
+Median of 5 independent runs; a run with over 10% spread is rejected, not published.
+
 | scenario | engine ns/op | throughput | p99 | p99.9 |
 |---|---|---|---|---|
-| `mixed_realistic` (headline) | **28.9** | **33.0 M ops/s** | 149 ns | 232 ns |
-| `cancel_heavy` | 23.4 | 53.2 M ops/s | 149 ns | 191 ns |
-| `cross_deep` | 30.3 | 30.3 M ops/s | 274 ns | 648 ns |
-| `worst_case_sweep` | 31.8 | 35.2 M ops/s | 149 ns | 3,440 ns |
+| `mixed_realistic` (headline) | **28.8** | **34.8 M ops/s** | 148 ns | 190 ns |
+| `cancel_heavy` | 9.8 | 102.5 M ops/s | 107 ns | 149 ns |
+| `rest_only` | 7.7 | 129.6 M ops/s | 149 ns | 232 ns |
+| `cross_deep` | 25.7 | 39.0 M ops/s | 482 ns | 1,024 ns |
+| `worst_case_sweep` | 25.1 | 39.9 M ops/s | 107 ns | 5,440 ns |
 
 **Zero allocations** in every measured window, asserted by a replaced
 `operator new` that fails the run if the counter moves.
 
 Three things stated up front rather than buried:
 
-- **Against the reference implementation the honest speedup is 1.8x to 5.0x.** One
-  scenario shows 185x, but that is a single asymptotic difference in the FOK
+- **Against the reference implementation the honest speedup is 2.7x to 10.8x.** One
+  scenario shows 195x, but that is a single asymptotic difference in the FOK
   pre-scan (O(levels) versus O(orders)), not the flat ladder. Attributing it to the
   data structures would be misleading.
+- **The one optimization that landed came from a failure.** Identity hashing in the
+  ID index was 35-67% faster on five scenarios and 281% *slower* on the sixth,
+  because mapping consecutive IDs to consecutive buckets makes backward-shift
+  deletion O(run length). Understanding that produced a blocked hash which is faster
+  on all six, -30.3% overall. Both are in
+  [`docs/OPTIMIZATION-LOG.md`](docs/OPTIMIZATION-LOG.md), including the rejected one.
+- **The CI instruction-count gate cannot see that optimization.** The blocked hash
+  executes more instructions while running faster, so the gate reads it as a
+  regression. A deterministic metric is worth having on a shared runner, and this is
+  what it costs.
 - **The clock cannot resolve one operation.** Measured timestamp granularity is
   42.000 ns; the operation costs ~29 ns. Per-operation cost therefore comes from an
   untimestamped batched loop, and the percentiles carry an explicit floor. The

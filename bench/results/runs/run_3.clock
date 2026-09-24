@@ -1,0 +1,1 @@
+clock: hz=1000000000 ns_per_tick=1.000000 resolution_median=42.000 ns resolution_min=17.000 ns overhead_raw=0.222 ns overhead_serialized=8.644 ns
