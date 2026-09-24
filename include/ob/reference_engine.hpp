@@ -122,6 +122,16 @@ private:
         return opp != kNoPrice && crosses(c.side, c.price, opp);
     }
 
+    void rest(const Command& c, Qty remaining) {
+        const Seq arrival = arrival_counter_++;
+        if (c.side == Side::Buy) {
+            bids_[c.price].push_back(RefOrder{c.id, remaining, arrival});
+        } else {
+            asks_[c.price].push_back(RefOrder{c.id, remaining, arrival});
+        }
+        live_[c.id] = Loc{c.side, c.price};
+    }
+
     void submit_new(const Command& c, EventBuffer& out) {
         const RejectReason r = validate_new(c);
         if (r != RejectReason::None) {
@@ -130,7 +140,14 @@ private:
         }
         out.push(base(EventType::Accepted, c.id));
         high_water_ = c.id;  // only an Accepted advances the mark
-        // Resting arrives in Task 6, matching in Task 7.
+
+        // Matching arrives in Task 7. For now every accepted order that can rest
+        // does so at its full quantity.
+        const bool can_rest =
+            c.order_type == OrderType::Limit || c.order_type == OrderType::PostOnly;
+        if (can_rest) {
+            rest(c, c.qty);
+        }
     }
 
     void submit_cancel(const Command& c, EventBuffer& out) {

@@ -14,6 +14,7 @@ add_executable(ob_tests
     test_command_events.cpp
     test_event_buffer.cpp
     test_reference_validation.cpp
+    test_reference_resting.cpp
 )
 target_link_libraries(ob_tests PRIVATE ob GTest::gtest_main)
 
