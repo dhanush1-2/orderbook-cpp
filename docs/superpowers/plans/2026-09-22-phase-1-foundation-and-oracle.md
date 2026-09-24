@@ -2910,11 +2910,15 @@ TEST(Invariants, HoldAfterEveryOperationInARandomStream) {
     }
 }
 
-// The checker must be able to fail. A checker that can only return ok is not a
-// checker, and this is the test that proves it works.
-TEST(Invariants, DetectAnInjectedFifoViolation) {
-    struct BrokenEngine {
-        static constexpr bool kTracksArrival = true;
+// Test doubles that deliberately violate an invariant.
+//
+// These MUST live at NAMESPACE SCOPE, not inside a TEST body: C++ forbids both
+// static data members and member templates inside a local class, and these need
+// `kTracksArrival` and a templated `for_each_resting`. Found during execution,
+// where the local-class version failed to compile with
+// "static data member not allowed in local struct".
+struct BrokenFifoEngine {
+    static constexpr bool kTracksArrival = true;
         void submit(const ob::Command&, ob::EventBuffer&) {}
         [[nodiscard]] ob::Ticks best_bid() const { return 10000; }
         [[nodiscard]] ob::Ticks best_ask() const { return ob::kNoPrice; }

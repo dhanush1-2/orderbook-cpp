@@ -43,6 +43,23 @@ public:
     }
     [[nodiscard]] std::size_t live_order_count() const noexcept { return live_.size(); }
 
+    // Enumerates every resting order, side by side, each side in best-to-worst
+    // price order, and within a level in FIFO order. The invariant checker and the
+    // L2 publisher (Phase 3) both rely on exactly that ordering.
+    template <class Fn>
+    void for_each_resting(Fn&& fn) const {
+        for (const auto& [px, level] : bids_) {
+            for (const RefOrder& o : level) {
+                fn(RestingOrder{Side::Buy, px, o.id, o.remaining, o.arrival});
+            }
+        }
+        for (const auto& [px, level] : asks_) {
+            for (const RefOrder& o : level) {
+                fn(RestingOrder{Side::Sell, px, o.id, o.remaining, o.arrival});
+            }
+        }
+    }
+
     void reset() {
         bids_.clear();
         asks_.clear();
