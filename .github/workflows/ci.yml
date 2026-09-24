@@ -1,0 +1,120 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-gcc-release
+            os: ubuntu-latest
+            cc: gcc
+            cxx: g++
+            build_type: Release
+            extra: ""
+          - name: linux-clang-release
+            os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+            build_type: Release
+            extra: ""
+          - name: linux-clang-asan-ubsan
+            os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+            build_type: Debug
+            extra: "-DOB_SANITIZE=ON"
+          - name: linux-gcc-debug-invariants
+            os: ubuntu-latest
+            cc: gcc
+            cxx: g++
+            build_type: Debug
+            extra: "-DOB_ENABLE_INVARIANTS=ON"
+          - name: macos-clang-release
+            os: macos-latest
+            cc: clang
+            cxx: clang++
+            build_type: Release
+            extra: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Configure
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DOB_WARNINGS_AS_ERRORS=ON
+          ${{ matrix.extra }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build --output-on-failure --timeout 900
+
+  determinism:
+    name: determinism across builds (E44)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+
+      # Four builds differing in compiler, standard library and optimization level.
+      # The event-stream fingerprint must be identical in all four, or the engine
+      # depends on something it must not depend on. Verified locally across
+      # Release and Debug before this workflow existed.
+      - name: Build and fingerprint each configuration
+        run: |
+          set -euo pipefail
+          : > fingerprints.txt
+          for cfg in "gcc:g++:Release" "gcc:g++:Debug" "clang:clang++:Release" "clang:clang++:Debug"; do
+            cc="${cfg%%:*}"; rest="${cfg#*:}"; cxx="${rest%%:*}"; bt="${rest#*:}"
+            rm -rf "build-$cc-$bt"
+            CC="$cc" CXX="$cxx" cmake -S . -B "build-$cc-$bt" -G Ninja \
+              -DCMAKE_BUILD_TYPE="$bt" -DOB_WARNINGS_AS_ERRORS=ON
+            cmake --build "build-$cc-$bt"
+            "./build-$cc-$bt/tests/ob_tests" \
+              --gtest_filter=Determinism.EventStreamFingerprintIsStable \
+            | grep '^FINGERPRINT' | tee -a fingerprints.txt
+          done
+          cat fingerprints.txt
+
+      - name: Assert every build agrees
+        run: |
+          set -euo pipefail
+          distinct=$(sort -u fingerprints.txt | wc -l)
+          if [ "$distinct" -ne 1 ]; then
+            echo "::error::event stream is not deterministic across builds"
+            sort -u fingerprints.txt
+            exit 1
+          fi
+          echo "all four builds agree: $(head -1 fingerprints.txt)"
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y clang-format
+      - run: |
+          find include tests -name '*.hpp' -o -name '*.cpp' \
+            | xargs clang-format --dry-run --Werror
