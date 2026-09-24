@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(ob_tests
     test_smoke.cpp
+    test_types.cpp
 )
 target_link_libraries(ob_tests PRIVATE ob GTest::gtest_main)
 
