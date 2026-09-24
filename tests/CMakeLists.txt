@@ -12,7 +12,11 @@ add_executable(ob_tests
     test_smoke.cpp
     test_clock.cpp
     test_histogram.cpp
+    test_order_pool.cpp
+    test_id_index.cpp
     test_histogram.cpp
+    test_order_pool.cpp
+    test_id_index.cpp
     test_order_pool.cpp
     test_id_index.cpp
     test_types.cpp

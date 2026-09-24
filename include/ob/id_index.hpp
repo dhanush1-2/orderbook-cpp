@@ -15,9 +15,10 @@
 // Never rehashes. Capacity is fixed at construction; reaching the load ceiling is
 // a capacity rejection (spec E40), not a resize.
 
+#include <ob/types.hpp>
+
 #include <cassert>
 #include <cstddef>
-#include <ob/types.hpp>
 #include <vector>
 
 namespace ob {
@@ -125,11 +126,10 @@ public:
     [[nodiscard]] std::size_t size() const noexcept { return size_; }
     [[nodiscard]] std::size_t capacity() const noexcept { return table_.size(); }
     [[nodiscard]] std::size_t max_load() const noexcept { return max_load_; }
-    [[nodiscard]] bool        full() const noexcept { return size_ >= max_load_; }
+    [[nodiscard]] bool full() const noexcept { return size_ >= max_load_; }
 
     // No prefault() here on purpose: the constructor's assign() writes every byte
     // of the table, so every page is already resident before any measurement runs.
-    // A separate prefault would be a no-op with a misleading name.
     void reset() noexcept {
         table_.assign(table_.size(), Entry{});
         size_ = 0;

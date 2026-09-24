@@ -1,6 +1,7 @@
+#include <ob/id_index.hpp>
+
 #include <gtest/gtest.h>
 
-#include <ob/id_index.hpp>
 #include <random>
 #include <unordered_map>
 #include <vector>
@@ -46,8 +47,8 @@ TEST(IdIndex, EraseRemovesAndReportsWhetherItFoundAnything) {
 
 // Spec E40: the load ceiling is a capacity rejection, never a rehash.
 TEST(IdIndex, RefusesInsertAtTheLoadCeilingAndNeverRehashes) {
-    ob::IdIndex       ix(8);
-    const std::size_t cap     = ix.capacity();
+    ob::IdIndex ix(8);
+    const std::size_t cap = ix.capacity();
     const std::size_t ceiling = ix.max_load();
 
     for (std::size_t i = 1; i <= ceiling; ++i) {
@@ -60,16 +61,15 @@ TEST(IdIndex, RefusesInsertAtTheLoadCeilingAndNeverRehashes) {
 }
 
 // THE test for backward-shift deletion. Build a real collision chain, remove an
-// element from the middle of it, and confirm the rest are still reachable. With a
-// naive "just clear the slot" deletion this fails, and with a buggy backward shift
-// it fails.
+// element from the middle of it, and confirm the rest are still reachable. With
+// a naive "just clear the slot" deletion this fails, and with a buggy backward
+// shift it fails.
 TEST(IdIndex, CollisionChainSurvivesDeletionFromTheMiddle) {
-    ob::IdIndex         ix(8);
+    ob::IdIndex ix(8);
     const std::uint64_t mask = ix.capacity() - 1;
 
-    // Find four ids that all hash to the same bucket.
     std::vector<ob::OrderId> colliding;
-    const std::uint64_t      target = ob::IdIndex::hash(1) & mask;
+    const std::uint64_t target = ob::IdIndex::hash(1) & mask;
     for (ob::OrderId id = 1; id < 2'000'000 && colliding.size() < 4; ++id) {
         if ((ob::IdIndex::hash(id) & mask) == target) {
             colliding.push_back(id);
@@ -95,16 +95,16 @@ TEST(IdIndex, CollisionChainSurvivesDeletionFromTheMiddle) {
 // backward-shift bugs actually surface, because they need a specific arrangement.
 TEST(IdIndex, MatchesAReferenceMapUnderRandomInsertAndErase) {
     for (std::uint64_t seed = 1; seed <= 20; ++seed) {
-        ob::IdIndex                               ix(512);
+        ob::IdIndex ix(512);
         std::unordered_map<ob::OrderId, ob::Slot> model;
-        std::mt19937_64                           rng(seed);
+        std::mt19937_64 rng(seed);
 
         for (int op = 0; op < 20000; ++op) {
             const ob::OrderId id = 1 + (rng() % 2000);
             if (rng() % 2 == 0 && ix.size() < ix.max_load()) {
                 const ob::Slot slot = static_cast<ob::Slot>(rng() % 100000);
-                const bool     a    = ix.insert(id, slot);
-                const bool     b    = model.emplace(id, slot).second;
+                const bool a = ix.insert(id, slot);
+                const bool b = model.emplace(id, slot).second;
                 ASSERT_EQ(a, b) << "seed " << seed << " op " << op;
             } else {
                 const bool a = ix.erase(id);
@@ -113,7 +113,6 @@ TEST(IdIndex, MatchesAReferenceMapUnderRandomInsertAndErase) {
             }
             ASSERT_EQ(ix.size(), model.size()) << "seed " << seed << " op " << op;
         }
-        // Every surviving entry must still be reachable.
         for (const auto& [id, slot] : model) {
             ASSERT_EQ(ix.find(id), slot) << "seed " << seed << " lost id " << id;
         }
@@ -123,7 +122,7 @@ TEST(IdIndex, MatchesAReferenceMapUnderRandomInsertAndErase) {
 TEST(IdIndex, ResetEmptiesWithoutChangingCapacity) {
     ob::IdIndex ix(16);
     for (ob::OrderId id = 1; id <= 8; ++id) {
-        ASSERT_TRUE(ix.insert(id, static_cast<ob::Slot>(id)));
+        EXPECT_TRUE(ix.insert(id, static_cast<ob::Slot>(id)));
     }
     const std::size_t cap = ix.capacity();
     ix.reset();
