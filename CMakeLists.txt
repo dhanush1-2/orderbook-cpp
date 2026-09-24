@@ -58,6 +58,10 @@ if(OB_IDINDEX_HASH_SPLITMIX)
     target_compile_definitions(ob INTERFACE OB_IDINDEX_HASH_SPLITMIX=1)
 endif()
 
+if(OB_BUILD_TOOLS)
+    add_subdirectory(tools)
+endif()
+
 if(OB_BUILD_FUZZ)
     add_subdirectory(fuzz)
 endif()

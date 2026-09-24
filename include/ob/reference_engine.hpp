@@ -15,6 +15,7 @@
 #include <list>
 #include <map>
 #include <ob/engine_concept.hpp>
+#include <ob/l2_snapshot.hpp>
 
 namespace ob {
 
@@ -56,6 +57,37 @@ public:
             for (const RefOrder& o : level) {
                 fn(RestingOrder{Side::Sell, px, o.id, o.remaining, o.arrival});
             }
+        }
+    }
+
+    // Deliberately simple, like everything else here: walks the maps and sums each
+    // level's orders. Exists so FastEngine's O(depth) version can be checked
+    // against something obviously correct.
+    void snapshot_l2(L2Snapshot& out) const {
+        out.seq        = seq_;
+        out.bid_levels = 0;
+        out.ask_levels = 0;
+        for (const auto& [px, level] : bids_) {
+            if (out.bid_levels >= L2Snapshot::kDepth) {
+                break;
+            }
+            QtySum total = 0;
+            for (const RefOrder& o : level) {
+                total += o.remaining;
+            }
+            out.bids[out.bid_levels++] =
+                L2Level{px, static_cast<std::uint32_t>(level.size()), total};
+        }
+        for (const auto& [px, level] : asks_) {
+            if (out.ask_levels >= L2Snapshot::kDepth) {
+                break;
+            }
+            QtySum total = 0;
+            for (const RefOrder& o : level) {
+                total += o.remaining;
+            }
+            out.asks[out.ask_levels++] =
+                L2Level{px, static_cast<std::uint32_t>(level.size()), total};
         }
     }
 
