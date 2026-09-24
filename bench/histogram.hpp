@@ -44,16 +44,16 @@ public:
     [[nodiscard]] std::size_t count() const noexcept { return samples_.size(); }
     [[nodiscard]] std::size_t capacity() const noexcept { return samples_.capacity(); }
     [[nodiscard]] std::size_t saturated() const noexcept { return saturated_; }
-    [[nodiscard]] bool        empty() const noexcept { return samples_.empty(); }
+    [[nodiscard]] bool empty() const noexcept { return samples_.empty(); }
 
     // Nearest-rank: index = ceil(p/100 * N) - 1, clamped to [0, N-1]. Stated
     // explicitly because tools disagree on this and the disagreement is invisible.
     [[nodiscard]] std::uint32_t percentile(double p) {
         assert(!samples_.empty() && "percentile of an empty histogram");
         ensure_sorted();
-        const double n    = static_cast<double>(samples_.size());
-        double       rank = std::ceil(p / 100.0 * n) - 1.0;
-        rank              = std::clamp(rank, 0.0, n - 1.0);
+        const double n = static_cast<double>(samples_.size());
+        double rank = std::ceil(p / 100.0 * n) - 1.0;
+        rank = std::clamp(rank, 0.0, n - 1.0);
         return samples_[static_cast<std::size_t>(rank)];
     }
 
@@ -85,7 +85,7 @@ public:
     void clear() noexcept {
         samples_.clear();
         saturated_ = 0;
-        sorted_    = false;
+        sorted_ = false;
     }
 
     // Raw samples are committed alongside published figures so a reader can

@@ -1,3 +1,5 @@
+#include "../bench/histogram.hpp"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -5,8 +7,6 @@
 #include <numeric>
 #include <random>
 #include <vector>
-
-#include "../bench/histogram.hpp"
 
 namespace {
 
@@ -24,7 +24,7 @@ Histogram one_to_hundred() {
 TEST(Histogram, StartsEmpty) {
     const Histogram h(16);
     EXPECT_EQ(h.count(), 0u);
-    EXPECT_EQ(h.capacity(), 16u);
+    EXPECT_GE(h.capacity(), 16u);
     EXPECT_EQ(h.saturated(), 0u);
 }
 
@@ -111,7 +111,7 @@ TEST(Histogram, ClearResetsCountAndSaturationButKeepsCapacity) {
     h.clear();
     EXPECT_EQ(h.count(), 0u);
     EXPECT_EQ(h.saturated(), 0u);
-    EXPECT_EQ(h.capacity(), 8u);
+    EXPECT_GE(h.capacity(), 8u);
 }
 
 // record() must never reallocate: it runs inside the measured loop, and an
@@ -119,7 +119,10 @@ TEST(Histogram, ClearResetsCountAndSaturationButKeepsCapacity) {
 TEST(HistogramDeathTest, RecordingBeyondCapacityAborts) {
     GTEST_FLAG_SET(death_test_style, "threadsafe");
     Histogram h(1);
-    h.record(1);
+    // Fill to whatever reserve() actually gave us; reserve may over-allocate.
+    while (h.count() < h.capacity()) {
+        h.record(1);
+    }
     EXPECT_DEATH(h.record(2), "");
 }
 
