@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <ob/fast_engine.hpp>
 #include <ob/reference_engine.hpp>
 
 #include "cases/edge_cases.hpp"
@@ -8,7 +9,7 @@ namespace {
 
 // Phase 2 adds ob::FastEngine to this list, and every case below then runs against
 // it unchanged. That one-line extension is the whole reason the table exists.
-using EngineTypes = ::testing::Types<ob::ReferenceEngine>;
+using EngineTypes = ::testing::Types<ob::ReferenceEngine, ob::FastEngine>;
 
 template <class E>
 class EdgeCases : public ::testing::Test {};
