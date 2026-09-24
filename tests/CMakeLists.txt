@@ -20,6 +20,9 @@ add_executable(ob_tests
     test_reference_order_types.cpp
     test_edge_cases.cpp
     test_invariants.cpp
+    test_scenario_gen.cpp
+    test_determinism.cpp
+    test_stress.cpp
 )
 target_link_libraries(ob_tests PRIVATE ob GTest::gtest_main)
 
