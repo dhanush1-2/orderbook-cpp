@@ -130,6 +130,32 @@ private:
         return e;
     }
 
+    // Non-mutating. Returns the quantity `c` could fill right now, stopping early
+    // once it reaches c.qty. Being const is what makes the Fok "mutate nothing"
+    // guarantee (E36) structural rather than a matter of care.
+    template <class BookMap>
+    [[nodiscard]] QtySum fillable_qty(const BookMap& book, const Command& c) const {
+        QtySum total = 0;
+        for (const auto& [px, level] : book) {
+            if (c.order_type != OrderType::Market && !crosses(c.side, c.price, px)) {
+                break;
+            }
+            for (const RefOrder& o : level) {
+                total += o.remaining;
+                if (total >= c.qty) {
+                    return total;
+                }
+            }
+        }
+        return total;
+    }
+
+    [[nodiscard]] bool fok_is_fillable(const Command& c) const {
+        const QtySum available = (c.side == Side::Buy) ? fillable_qty(asks_, c)
+                                                      : fillable_qty(bids_, c);
+        return available >= c.qty;
+    }
+
     // Matches `c` against `book` (the opposite side), consuming `remaining`.
     // Emits Trade per fill, and Filled for each maker it fully consumes.
     template <class BookMap>
@@ -183,6 +209,15 @@ private:
         out.push(base(EventType::Accepted, c.id));
         high_water_ = c.id;  // only an Accepted advances the mark
 
+        // Fok decides before touching anything (E36).
+        if (c.order_type == OrderType::Fok && !fok_is_fillable(c)) {
+            Event e = base(EventType::Cancelled, c.id);
+            e.cancel = CancelReason::Unfillable;
+            e.qty = c.qty;
+            out.push(e);
+            return;
+        }
+
         Qty remaining = c.qty;
 
         // PostOnly never matches: validation already rejected it if it would cross.
@@ -199,12 +234,30 @@ private:
             return;
         }
 
-        // Market/Ioc/Fok remainders are handled in Task 9. For now only the
-        // resting types have a defined remainder behavior.
-        const bool can_rest =
-            c.order_type == OrderType::Limit || c.order_type == OrderType::PostOnly;
-        if (can_rest) {
-            rest(c, remaining);
+        switch (c.order_type) {
+            case OrderType::Limit:
+            case OrderType::PostOnly:
+                // Rests. Accepted already conveyed this, so no terminal event.
+                rest(c, remaining);
+                return;
+
+            case OrderType::Market:
+            case OrderType::Ioc: {
+                Event e = base(EventType::Cancelled, c.id);
+                // NoLiquidity when nothing filled at all, IocRemainder otherwise.
+                e.cancel = (remaining == c.qty) ? CancelReason::NoLiquidity
+                                                : CancelReason::IocRemainder;
+                e.qty = remaining;
+                out.push(e);
+                return;
+            }
+
+            case OrderType::Fok:
+                // Unreachable: the pre-scan guarantees a Fok that gets here fills
+                // completely, so `remaining` is 0 and we returned above.
+                assert(false && "Fok reached the remainder branch: pre-scan disagreed "
+                                "with the match loop");
+                return;
         }
     }
 

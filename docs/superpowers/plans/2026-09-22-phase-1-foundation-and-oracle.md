@@ -2217,7 +2217,10 @@ TEST(RefOrderTypes, FokOneUnitShortMutatesNothing) {
 TEST(RefOrderTypes, FokIgnoresLiquidityBeyondItsLimitPrice) {
     ob::ReferenceEngine e;
     feed(e, ob::make_new(1, Side::Sell, OrderType::Limit, 10000, 50));
-    feed(e, ob::make_new(2, Side::Sell, OrderType::Limit, 99999, 50));  // outside the limit
+    // 20000 is inside the ladder but outside the Fok's limit price. Using a price
+    // beyond kMaxTick here would be REJECTED outright, and the test would then
+    // pass for the wrong reason.
+    feed(e, ob::make_new(2, Side::Sell, OrderType::Limit, 20000, 50));
 
     const auto ev = run_one(e, ob::make_new(9, Side::Buy, OrderType::Fok, 10000, 100));
     EXPECT_EQ(count_trades(ev), 0u);
