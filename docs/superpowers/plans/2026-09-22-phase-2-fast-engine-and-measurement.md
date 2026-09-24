@@ -1,4 +1,4 @@
-# Plan 2: Fast Engine and the Measurement Story — Implementation Plan
+# Phase 2: Fast Engine and the Measurement Story — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +10,7 @@
 
 **Spec:** [`docs/superpowers/specs/2026-09-22-order-book-matching-engine-design.md`](../specs/2026-09-22-order-book-matching-engine-design.md)
 
-**Prerequisite:** Plan 1 complete, including its Task 13 Step 2 check that two optimization levels produce the same event-stream fingerprint. **Do not start this plan until that prints `1`.** Optimizing an engine whose behavior already depends on optimization level wastes the entire differential-testing apparatus.
+**Prerequisite:** Phase 1 complete, including its Task 13 Step 2 check that two optimization levels produce the same event-stream fingerprint. **Do not start this plan until that prints `1`.** Optimizing an engine whose behavior already depends on optimization level wastes the entire differential-testing apparatus.
 
 ## Global Constraints
 
@@ -20,7 +20,7 @@ See [`README.md`](README.md). The ones this plan lives and dies by:
 - `static_assert(sizeof(Order) == 32)` and `static_assert(sizeof(PriceLevel) == 24)`.
 - Cache-line padding uses `std::hardware_destructive_interference_size`, never a hardcoded 64. **This machine's line is 128 bytes.**
 - **Validation order is fixed** and identical to `ReferenceEngine`: quantity, price range, duplicate ID (`id <= high_water_`), capacity, PostOnly-would-cross.
-- **The event ordering contract from Plan 1 is binding.** Byte-identical output to `ReferenceEngine` is the acceptance criterion for every task from Task 7 onward.
+- **The event ordering contract from Phase 1 is binding.** Byte-identical output to `ReferenceEngine` is the acceptance criterion for every task from Task 7 onward.
 - **Per-operation cost is measured in batches; distributions state the 41.6667 ns resolution floor.** Never convert ticks to nanoseconds inside a measured region.
 - **The CI performance gate is Cachegrind instruction count, threshold 2%.** Never wall-clock.
 - Conventional Commits. Nothing pushed without explicit approval.
@@ -879,7 +879,7 @@ namespace ob {
 // Exactly 32 bytes: 2 per 64-byte cache line on x86, 4 per 128-byte line on Apple
 // Silicon. Every field is load-bearing and there is no room for anything else,
 // which is why the arrival sequence used by the invariant checker lives only in
-// ReferenceEngine (see Plan 1's kTracksArrival).
+// ReferenceEngine (see Phase 1's kTracksArrival).
 //
 // `next` does double duty: the per-level FIFO link while the slot is live, and the
 // free-list link while it is not. The two lifetimes are disjoint.
@@ -2253,7 +2253,7 @@ silently ignored."
 - Consumes: `ob/price_ladder.hpp`, `ob/id_index.hpp`, `ob/engine_concept.hpp`, `ob/invariants.hpp`.
 - Produces: `ob::FastEngine` with `static constexpr bool kTracksArrival = false`, `struct Config { std::size_t order_capacity = 1'000'000; }`, `explicit FastEngine(Config = {})`, `submit(const Command&, EventBuffer&) noexcept`, `best_bid()`, `best_ask()`, `live_order_count()`, `for_each_resting(Fn&&) const`, `check_internal_invariants() const -> InvariantResult`, `reset()`. Also `PriceLadder<S>::for_each_level(Fn&&) const` and `OrderPool::free_list_length() const`.
 
-**The payoff of Plan 1's design lands in this task:** adding one type to `EngineTypes` runs all 40 edge cases against `FastEngine` with no new test code. If the logic diverges from `ReferenceEngine` anywhere, those cases say exactly where.
+**The payoff of Phase 1's design lands in this task:** adding one type to `EngineTypes` runs all 40 edge cases against `FastEngine` with no new test code. If the logic diverges from `ReferenceEngine` anywhere, those cases say exactly where.
 
 `FastEngine`'s FOK pre-scan is genuinely cheaper than the reference's: it sums `PriceLevel::total` per level rather than walking individual orders, so it is O(levels) instead of O(orders). That the two agree is precisely what differential testing establishes.
 
@@ -2264,7 +2264,7 @@ In `include/ob/price_ladder.hpp`, alongside `for_each`:
 ```cpp
     // Visits (price, level) best-to-worst, stopping early when `fn` returns false.
     // Used by the FOK pre-scan (which needs level totals, not individual orders)
-    // and by the L2 publisher in Plan 3.
+    // and by the L2 publisher in Phase 3.
     template <class Fn>
     void for_each_level(Fn&& fn) const {
         std::uint32_t i;
@@ -2489,7 +2489,7 @@ TEST(FastEngine, FokPreScanOneUnitShortMutatesNothing) {
 
 - [ ] **Step 3: Add `FastEngine` to the shared edge-case suite**
 
-This is the one-line change Plan 1 was built for. In `tests/test_edge_cases.cpp`:
+This is the one-line change Phase 1 was built for. In `tests/test_edge_cases.cpp`:
 
 ```cpp
 #include <ob/fast_engine.hpp>
@@ -2924,7 +2924,7 @@ git add include/ob/fast_engine.hpp include/ob/price_ladder.hpp include/ob/order_
 git commit -m "feat: FastEngine on flat ladder, arena and O(1) id index
 
 Adding FastEngine to EngineTypes runs all 40 edge cases against it with no new
-test code, which was the point of Plan 1's concept-based test design.
+test code, which was the point of Phase 1's concept-based test design.
 
 The FOK pre-scan sums level totals rather than walking orders, so it is
 O(levels) where the reference is O(orders). That the two agree is established
@@ -3143,7 +3143,7 @@ TEST(Differential, EnginesAgreeAtLadderExtremes) {
 }
 
 // The shrinker has to work for the above failures to be actionable, so it is
-// tested here against an injected divergence predicate rather than only in Plan 1.
+// tested here against an injected divergence predicate rather than only in Phase 1.
 TEST(Differential, ShrinkerReducesAnInjectedDivergence) {
     const auto stream = obtest::generate_stream(77, 5000, obtest::GenConfig{});
     // "Diverges" iff the stream still contains a cancel command.
@@ -4718,7 +4718,7 @@ against.
 **Profile evidence:** `./scripts/profile.sh ob_bench_throughput --ops 2000000`,
 top symbols recorded in `bench/results/profile/`.
 
-**Change:** none. `FastEngine` as first written in Plan 2 Task 7: flat ladder,
+**Change:** none. `FastEngine` as first written in Phase 2 Task 7: flat ladder,
 three-level bitmap, arena with an index free list, open-addressed ID index with
 SplitMix64 hashing and backward-shift deletion.
 
@@ -5308,7 +5308,7 @@ cat docs/BENCHMARKS.md
 
 - [ ] **Step 6: Update `README.md` with the real numbers**
 
-Replace the "Performance: not yet measured" section with the measured headline figures, the honest caveats, and a link to `docs/BENCHMARKS.md`, `docs/METHODOLOGY.md` and `docs/OPTIMIZATION-LOG.md`. **Put the p99.9 next to the p50, not below the fold.** Also update the status line from "Plan 1 complete" to reflect Plan 2, and state plainly which spec success criteria are met and which are not.
+Replace the "Performance: not yet measured" section with the measured headline figures, the honest caveats, and a link to `docs/BENCHMARKS.md`, `docs/METHODOLOGY.md` and `docs/OPTIMIZATION-LOG.md`. **Put the p99.9 next to the p50, not below the fold.** Also update the status line from "Phase 1 complete" to reflect Phase 2, and state plainly which spec success criteria are met and which are not.
 
 - [ ] **Step 7: Verify every published claim against the spec's success criteria**
 
@@ -5319,7 +5319,7 @@ grep -c '^### ' docs/OPTIMIZATION-LOG.md                 # baseline + one per ca
 python3 -c "import json;d=json.load(open('bench/baselines/instructions.json'));print(len(d['instructions']),'scenarios gated')"
 ```
 
-Confirm by hand against spec section 2: S1 met (10^7 differential plus fuzzing, both in CI), S2 met, S3 met, S4 met, S5 met, S6 met, S7 met. **S8 belongs to Plan 3 and is not met**; say so in the README rather than leaving it ambiguous. If a spec performance target in 5.6 was missed, publish the real number and record why the target moved, per spec section 1.
+Confirm by hand against spec section 2: S1 met (10^7 differential plus fuzzing, both in CI), S2 met, S3 met, S4 met, S5 met, S6 met, S7 met. **S8 belongs to Phase 3 and is not met**; say so in the README rather than leaving it ambiguous. If a spec performance target in 5.6 was missed, publish the real number and record why the target moved, per spec section 1.
 
 - [ ] **Step 8: Commit**
 
@@ -5353,7 +5353,7 @@ Per the global constraints and spec O3, **nothing is pushed without explicit app
 
 ## Self-review
 
-**Spec coverage.** Success criteria S1 (Task 8 differential plus Task 9 fuzzing), S2 (Task 7 internal invariants plus Plan 1's generic checker), S3 (Task 11 distributions), S4 (`docs/METHODOLOGY.md` from Plan 1, extended in Task 15), S5 (Task 13 log, Task 14 entries), S6 (Task 15 gate), S7 (Task 15 reproduction commands plus committed raw samples). S8 is Plan 3 and is out of scope here by construction. Spec 5.6's performance targets are measured in Tasks 11 and 12 and published in Task 15; a missed target publishes the real number with a recorded reason, per spec section 1. Edge cases E39 and E40 are covered in Tasks 3, 4 and 7; E45 is Task 8. Spec section 9's rejected alternatives reappear as measured candidates in Task 14 (identity hashing) rather than being asserted.
+**Spec coverage.** Success criteria S1 (Task 8 differential plus Task 9 fuzzing), S2 (Task 7 internal invariants plus Phase 1's generic checker), S3 (Task 11 distributions), S4 (`docs/METHODOLOGY.md` from Phase 1, extended in Task 15), S5 (Task 13 log, Task 14 entries), S6 (Task 15 gate), S7 (Task 15 reproduction commands plus committed raw samples). S8 is Phase 3 and is out of scope here by construction. Spec 5.6's performance targets are measured in Tasks 11 and 12 and published in Task 15; a missed target publishes the real number with a recorded reason, per spec section 1. Edge cases E39 and E40 are covered in Tasks 3, 4 and 7; E45 is Task 8. Spec section 9's rejected alternatives reappear as measured candidates in Task 14 (identity hashing) rather than being asserted.
 
 **Placeholder scan.** No "TBD", no "add appropriate error handling", no "similar to Task N". Task 14 is a procedure with five concrete named candidates and real code for each, not a promise to optimize something later; its outcomes cannot be written in advance because they are measurements, and the plan says exactly how each is obtained and recorded.
 

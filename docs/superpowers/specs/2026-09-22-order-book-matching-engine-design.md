@@ -84,7 +84,7 @@ deadline.
 | Not building | Why |
 |---|---|
 | Multi-symbol sharding across threads | The matching hot path stays single-threaded regardless, so this adds thread plumbing without making matching faster. The engine is designed to be instantiated per symbol so this stays possible later. |
-| Order entry over TCP/UDP with a binary wire protocol | Deferred to an explicitly optional plan (Plan 4). It is the strongest remaining addition, but it is a networking project bolted onto a matching project and can be added without redesign. |
+| Order entry over TCP/UDP with a binary wire protocol | Deferred to an explicitly optional plan (Phase 4). It is the strongest remaining addition, but it is a networking project bolted onto a matching project and can be added without redesign. |
 | Persistence, journaling, crash recovery | Real exchange concern, large, orthogonal to the performance story. |
 | Risk checks, position limits, margin | Business logic, not engine mechanics. |
 | Participant identity and self-trade prevention | Requires a participant model the core does not otherwise need. The `flags` byte in `Order` reserves room for it. |
@@ -957,7 +957,7 @@ global state. Pretending a single symbol's matching can be parallelized would be
 wrong.
 
 **"You have no deadline. What stops this from never shipping?"**
-Four independently shippable plans. Plan 1 alone produces a correct, tested,
+Four independently shippable plans. Phase 1 alone produces a correct, tested,
 CI-verified engine. Each plan's end state is a repository someone could read.
 
 **"Why should I believe the before/after optimization numbers?"**
@@ -1090,7 +1090,7 @@ The counters prove the workload was what it said it was.
 
 | # | Question | Default if unanswered |
 |---|---|---|
-| O1 | Is the optional Plan 4 (binary wire protocol + busy-poll ingest) in scope? | Not built. Plans 1 to 3 stand alone. |
+| O1 | Is the optional Phase 4 (binary wire protocol + busy-poll ingest) in scope? | Not built. Phases 1 to 3 stand alone. |
 | O2 | Install full Xcode for Instruments, or accept `sample` plus Linux CI `perf`? | Accept the limitation; `sample` locally, `perf` in CI. Revisit if profiling proves too coarse. |
 | O3 | Is the repository public on GitHub? CI and the resume value both assume yes. | Assume public. Nothing is pushed without explicit approval. |
 | O4 | Add in-place size *reduction* preserving time priority, as real venues do? | Not in v1. Cancel/replace loses priority, documented. |
@@ -1104,7 +1104,7 @@ Brainstorming was interrupted before the layer-scope question was settled. The
 selection on record was the TUI, without the wire protocol or the L2 feed. The L2
 feed is a hard prerequisite for the TUI, since the TUI has to read book state from
 somewhere without touching the engine, so it is included. The wire protocol is
-isolated into **Plan 4, explicitly optional**, and nothing in Plans 1 to 3 depends
+isolated into **Phase 4, explicitly optional**, and nothing in Phases 1 to 3 depends
 on it.
 
-If that reading is wrong, Plan 4 is the only thing that moves.
+If that reading is wrong, Phase 4 is the only thing that moves.

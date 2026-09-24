@@ -1,10 +1,10 @@
-# Plan 1: Foundation and Correctness Oracle — Implementation Plan
+# Phase 1: Foundation and Correctness Oracle — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a correct, exhaustively tested limit-order matching engine with green CI, plus the random-stream generator and shrinker that will act as the correctness oracle for the fast engine in Plan 2.
+**Goal:** Build a correct, exhaustively tested limit-order matching engine with green CI, plus the random-stream generator and shrinker that will act as the correctness oracle for the fast engine in Phase 2.
 
-**Architecture:** Header-only C++20 library. Value-type `Command` in, sequenced `Event` stream out through a caller-owned `EventBuffer`. `ReferenceEngine` uses `std::map` and `std::list` deliberately: it exists to be obviously correct, never to be fast, and it is never optimized. A compile-time `Engine` concept lets every test in this plan be reused verbatim against `FastEngine` in Plan 2.
+**Architecture:** Header-only C++20 library. Value-type `Command` in, sequenced `Event` stream out through a caller-owned `EventBuffer`. `ReferenceEngine` uses `std::map` and `std::list` deliberately: it exists to be obviously correct, never to be fast, and it is never optimized. A compile-time `Engine` concept lets every test in this plan be reused verbatim against `FastEngine` in Phase 2.
 
 **Tech Stack:** C++20, CMake >= 3.25 + Ninja, GoogleTest v1.15.2 (FetchContent, test-only), GitHub Actions.
 
@@ -32,7 +32,7 @@ See [`docs/superpowers/plans/README.md`](README.md) for the full list, which app
 
 ## Event ordering contract
 
-Fixed here because every test in this plan and Plan 2 depends on it byte-for-byte.
+Fixed here because every test in this plan and Phase 2 depends on it byte-for-byte.
 
 For a `New` command that passes validation:
 
@@ -369,7 +369,7 @@ using Ticks   = std::int32_t;   // price, in whole ticks. never floating point.
 using Qty     = std::uint32_t;  // per-order quantity
 using QtySum  = std::uint64_t;  // aggregates; wider so level overflow is unreachable
 using Seq     = std::uint64_t;  // event sequence number
-using Slot    = std::uint32_t;  // index into the order pool (Plan 2)
+using Slot    = std::uint32_t;  // index into the order pool (Phase 2)
 
 // Ladder bounds. Tick 0 is deliberately invalid so that a zero-initialised or
 // default-constructed price can never be mistaken for a real one.
@@ -896,7 +896,7 @@ private:
 
 // The compile-time engine interface. A concept rather than a virtual base class:
 // the benchmark must not measure vtable dispatch, and the optimizer has to be
-// able to inline across this boundary. Plan 3 extends this with snapshot_l2.
+// able to inline across this boundary. Phase 3 extends this with snapshot_l2.
 template <class E>
 concept Engine = requires(E e, const Command& c, EventBuffer& out) {
     { e.submit(c, out) } -> std::same_as<void>;
@@ -1144,7 +1144,7 @@ Expected: FAIL with `'ob/reference_engine.hpp' file not found`.
 // The correctness oracle. This engine is DELIBERATELY SIMPLE and is NEVER
 // OPTIMIZED. std::map, std::list and std::set are used on purpose: the value of
 // this file is that a reader can confirm it is right by reading it. Every
-// optimization in Plan 2 is validated by differential testing against this.
+// optimization in Phase 2 is validated by differential testing against this.
 //
 // Do not "improve" the performance of anything in this file.
 
@@ -2388,7 +2388,7 @@ git commit -m "feat: Market, IOC, FOK and PostOnly with a non-mutating FOK pre-s
 - Consumes: `ob/reference_engine.hpp`, `ob/engine_concept.hpp`.
 - Produces: `obtest::Expect`, `obtest::Case`, `obtest::all_edge_cases() -> std::vector<Case>`, and the builders `obtest::buy`, `obtest::sell`, `obtest::cxl`, `obtest::acc`, `obtest::rej`, `obtest::trd`, `obtest::fil`, `obtest::can`. The test itself is a `TYPED_TEST_SUITE` over `EngineTypes`.
 
-Why data-driven rather than 40 hand-written tests: **the table is the specification.** Each row names its spec edge case, its setup, its subject command and its exact expected event sequence, so a reviewer can diff the table against spec section 5.3 line by line. And `EngineTypes` is a one-line change in Plan 2 to run all of it against `FastEngine`.
+Why data-driven rather than 40 hand-written tests: **the table is the specification.** Each row names its spec edge case, its setup, its subject command and its exact expected event sequence, so a reviewer can diff the table against spec section 5.3 line by line. And `EngineTypes` is a one-line change in Phase 2 to run all of it against `FastEngine`.
 
 A case asserts events from the **subject command only**. Setup events are ignored, which is what keeps each row to one readable line group.
 
@@ -2660,7 +2660,7 @@ inline std::vector<Case> all_edge_cases() {
 
 namespace {
 
-// Plan 2 adds ob::FastEngine to this list, and every case below then runs against
+// Phase 2 adds ob::FastEngine to this list, and every case below then runs against
 // it unchanged. That one-line extension is the whole reason the table exists.
 using EngineTypes = ::testing::Types<ob::ReferenceEngine>;
 
@@ -2786,15 +2786,15 @@ Not every spec edge case fits a single-subject-command table. Record where the r
 //   E9  ladder fully occupied      -> tests/test_stress.cpp (Task 12): 65,536 levels
 //   E14 price not a whole tick     -> not reachable through this API; the API takes
 //                                     integer ticks. Enforced at the file boundary by
-//                                     the replay parser (Plan 3).
+//                                     the replay parser (Phase 3).
 //   E39 order pool exhausted       -> test_reference_resting.cpp,
 //                                     test_reference_cancel.cpp (capacity ctor)
-//   E40 id index at capacity       -> Plan 2, tests/test_id_index.cpp
+//   E40 id index at capacity       -> Phase 2, tests/test_id_index.cpp
 //   E41 level quantity overflow    -> invariants.hpp (Task 11), asserted continuously
 //   E42 sequence number overflow   -> accepted, not guarded (spec 5.3); ~5800 years
 //   E43 replay determinism         -> tests/test_determinism.cpp (Task 12)
 //   E44 determinism across builds  -> CI matrix golden-file comparison (Task 13)
-//   E45 reference vs fast engine   -> Plan 2, tests/test_differential.cpp
+//   E45 reference vs fast engine   -> Phase 2, tests/test_differential.cpp
 //   E46 buffer sized exactly       -> test_event_buffer.cpp (Task 4)
 //   E47 buffer overflow aborts     -> test_event_buffer.cpp death test (Task 4)
 //   E48 strictly increasing ids    -> all_edge_cases() rows E48, E48b, and
@@ -2821,7 +2821,7 @@ git commit -m "test: data-driven edge-case suite covering spec E1-E38, typed ove
 - Consumes: `ob/engine_concept.hpp`.
 - Produces: `ob::Inspectable` concept; `ob::RestingOrder{Side side; Ticks price; OrderId id; Qty remaining; Seq arrival;}`; `ob::InvariantResult{bool ok; const char* failure;}`; `ob::check_invariants(const E&) -> InvariantResult`. `ReferenceEngine` gains `template <class Fn> void for_each_resting(Fn&&) const`.
 
-The checker is generic over any engine that can enumerate its resting orders, so Plan 2's `FastEngine` gets the same scrutiny for free. It returns a result rather than asserting, so the fuzzer can report which invariant broke.
+The checker is generic over any engine that can enumerate its resting orders, so Phase 2's `FastEngine` gets the same scrutiny for free. It returns a result rather than asserting, so the fuzzer can report which invariant broke.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2977,7 +2977,7 @@ Add this public method (it needs `#include <ob/invariants.hpp>`'s `RestingOrder`
 ```cpp
     // Enumerates every resting order, side by side, each side in best-to-worst
     // price order, and within a level in FIFO order. The invariant checker and the
-    // L2 publisher (Plan 3) both rely on exactly that ordering.
+    // L2 publisher (Phase 3) both rely on exactly that ordering.
     template <class Fn>
     void for_each_resting(Fn&& fn) const {
         for (const auto& [px, level] : bids_) {
@@ -3018,7 +3018,7 @@ struct RestingOrder {
 #pragma once
 
 // Whole-book invariant checker. Generic over any engine that can enumerate its
-// resting orders, so the FastEngine in Plan 2 gets the same scrutiny for free.
+// resting orders, so the FastEngine in Phase 2 gets the same scrutiny for free.
 //
 // Returns a result rather than asserting, so the fuzzer can report WHICH invariant
 // broke instead of just dying.
@@ -3171,7 +3171,7 @@ git commit -m "feat: generic whole-book invariant checker with self-tests that p
 - Consumes: `ob/command.hpp`, `ob/invariants.hpp`.
 - Produces: `obtest::Xoshiro256ss{explicit Xoshiro256ss(std::uint64_t seed); std::uint64_t next(); std::uint64_t bounded(std::uint64_t n);}`; `obtest::GenConfig`; `obtest::generate_stream(std::uint64_t seed, std::size_t n, const GenConfig&) -> std::vector<Command>`; `obtest::shrink(std::vector<Command>, const std::function<bool(const std::vector<Command>&)>& still_fails) -> std::vector<Command>`; `obtest::run_stream<E>(const std::vector<Command>&) -> std::vector<Event>`.
 
-This is the oracle machinery Plan 2 consumes. In Plan 1 it earns its keep two ways: random streams checked against the invariants find bugs no hand-written case would, and the golden files prove determinism (E43, E44).
+This is the oracle machinery Phase 2 consumes. In Phase 1 it earns its keep two ways: random streams checked against the invariants find bugs no hand-written case would, and the golden files prove determinism (E43, E44).
 
 The shrinker matters more than it looks. A differential failure at operation 4,000,000 is unusable; the same failure reduced to six commands is a test you commit.
 
@@ -3621,7 +3621,7 @@ TEST(Stress, InvariantsHoldAcrossManySeeds) {
 
 // E9: every tick in the ladder occupied. Too large for the edge-case table, so it
 // lives here. Uses a narrow ladder span to stay fast while still hitting both
-// extremes and every bitmap word boundary that Plan 2 will care about.
+// extremes and every bitmap word boundary that Phase 2 will care about.
 TEST(Stress, EveryTickInARangeCanBeOccupiedIncludingBothExtremes) {
     ob::ReferenceEngine engine(200'000);
     std::vector<ob::Event> storage(8192);
@@ -3821,11 +3821,11 @@ done
 sort -u /tmp/fp.txt | wc -l
 ```
 
-Expected: `1`. Two different optimization levels must produce the same digest. If this prints `2`, there is a real bug: something in the engine depends on optimization level, which almost always means undefined behavior. **Do not proceed to Plan 2 until this prints 1.**
+Expected: `1`. Two different optimization levels must produce the same digest. If this prints `2`, there is a real bug: something in the engine depends on optimization level, which almost always means undefined behavior. **Do not proceed to Phase 2 until this prints 1.**
 
 - [ ] **Step 3: Write `docs/METHODOLOGY.md`**
 
-The reader-facing version of spec section 8. It exists now, before any benchmark, so that the numbers in Plan 2 land on top of a stated method rather than the method being reverse-engineered to fit the numbers.
+The reader-facing version of spec section 8. It exists now, before any benchmark, so that the numbers in Phase 2 land on top of a stated method rather than the method being reverse-engineered to fit the numbers.
 
 ```markdown
 # Measurement methodology
@@ -3904,7 +3904,7 @@ Stated rather than buried:
 
 - [ ] **Step 4: Write `README.md`**
 
-The numbers section is deliberately empty and says so. An empty, honest results table is worth more than an aspirational one, and Plan 2 fills it.
+The numbers section is deliberately empty and says so. An empty, honest results table is worth more than an aspirational one, and Phase 2 fills it.
 
 ```markdown
 # Order book and matching engine
@@ -3913,9 +3913,9 @@ A limit order book and matching engine in C++20. Price-time priority, five order
 types, deterministic event output, and a measurement harness built to survive
 someone attacking it.
 
-**Status: Plan 1 complete.** The engine is correct and exhaustively tested. It is
+**Status: Phase 1 complete.** The engine is correct and exhaustively tested. It is
 not yet fast, and it is not yet claimed to be: `ReferenceEngine` uses `std::map`
-and `std::list` on purpose. Plan 2 adds `FastEngine` and the measured results.
+and `std::list` on purpose. Phase 2 adds `FastEngine` and the measured results.
 
 ## What it does
 
@@ -3943,7 +3943,7 @@ Five layers, weakest to strongest:
    produce an identical event-stream fingerprint, which catches undefined
    behaviour that happens to be benign at one optimization level
 
-Plan 2 adds a sixth: differential testing of `FastEngine` against
+Phase 2 adds a sixth: differential testing of `FastEngine` against
 `ReferenceEngine` over more than 10^7 generated operations, plus libFuzzer.
 
 ## Performance
@@ -4001,7 +4001,7 @@ ctest --test-dir build -N | tail -3            # total test count
 grep -c '{"E' tests/cases/edge_cases.hpp       # edge-case table rows
 ```
 
-Confirm by hand: S1 partially met (differential arrives in Plan 2, generator and shrinker exist now), S2 met, S7 met for build commands, S3–S6 and S8 belong to later plans. Record anything unmet in the commit message rather than claiming completion.
+Confirm by hand: S1 partially met (differential arrives in Phase 2, generator and shrinker exist now), S2 met, S7 met for build commands, S3–S6 and S8 belong to later plans. Record anything unmet in the commit message rather than claiming completion.
 
 - [ ] **Step 7: Commit**
 
@@ -4025,11 +4025,11 @@ Per the global constraints and spec O3, **nothing is pushed without explicit app
 
 Run after the plan is complete, before execution.
 
-**Spec coverage.** Spec section 5.3 lists E1–E47. E1–E8 and E10–E38 are rows in the Task 10 table. E9 is `Stress.EveryTickInARange...` (Task 12). E39 is in Tasks 6 and 8. E43 and E44 are Task 12 and the Task 13 determinism job. E46 and E47 are Task 4. E14, E40, E41, E42 and E45 are accounted for in the Task 10 coverage note, four of them deferred to Plan 2 by design and one unreachable through this API. Spec sections 8 (measurement), 5.6 (performance) and 5.8's L2 additions are Plans 2 and 3 and are out of this plan's scope by construction.
+**Spec coverage.** Spec section 5.3 lists E1–E47. E1–E8 and E10–E38 are rows in the Task 10 table. E9 is `Stress.EveryTickInARange...` (Task 12). E39 is in Tasks 6 and 8. E43 and E44 are Task 12 and the Task 13 determinism job. E46 and E47 are Task 4. E14, E40, E41, E42 and E45 are accounted for in the Task 10 coverage note, four of them deferred to Phase 2 by design and one unreachable through this API. Spec sections 8 (measurement), 5.6 (performance) and 5.8's L2 additions are Phases 2 and 3 and are out of this plan's scope by construction.
 
 **Placeholder scan.** No "TBD", no "add appropriate error handling", no "similar to Task N". Every code step carries the actual code it needs.
 
-**Compile-time capability flag.** `E::kTracksArrival` is required by `Inspectable` and consumed by an `if constexpr` in `check_invariants`. `ReferenceEngine` sets it true. Plan 2's `FastEngine` sets it false, because `Order` is exactly 32 bytes with no room for an arrival sequence, and adding a parallel array would put a cold-line store on the hot path for the benefit of a debug-only check. FastEngine's FIFO order is established instead by its own intrusive-list structural invariants and by differential testing against this engine.
+**Compile-time capability flag.** `E::kTracksArrival` is required by `Inspectable` and consumed by an `if constexpr` in `check_invariants`. `ReferenceEngine` sets it true. Phase 2's `FastEngine` sets it false, because `Order` is exactly 32 bytes with no room for an arrival sequence, and adding a parallel array would put a cold-line store on the hot path for the benefit of a debug-only check. FastEngine's FIFO order is established instead by its own intrusive-list structural invariants and by differential testing against this engine.
 
 **Type consistency.** `submit(const Command&, EventBuffer&)`, `best_bid()`, `best_ask()`, `reset()`, `live_order_count()`, `for_each_resting(Fn&&)` are spelled identically in the concept (Task 4), the engine (Tasks 5–11), the invariant checker (Task 11) and the harness (Task 12). `RestingOrder` is declared in `types.hpp`, not `invariants.hpp`, specifically to avoid a circular include between the engine and the checker. `Expect`/`Case` field names match their use in the Task 10 runner. `GenConfig` field names match `generate_stream`'s body.
 
