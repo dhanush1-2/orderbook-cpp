@@ -1,6 +1,6 @@
-{"scenario":"rest_only","engine":"fast","ops":2000000,"seconds":0.021220,"ops_per_sec":94252519,"events_per_sec":94252519,"ns_per_op":10.61,"allocations":0,"capacity":1000000}
-{"scenario":"cross_shallow","engine":"fast","ops":2000000,"seconds":0.030168,"ops_per_sec":66295757,"events_per_sec":165739393,"ns_per_op":15.08,"allocations":0,"capacity":1000000}
-{"scenario":"cross_deep","engine":"fast","ops":2000000,"seconds":0.060090,"ops_per_sec":33283347,"events_per_sec":72487601,"ns_per_op":30.05,"allocations":0,"capacity":1000000}
-{"scenario":"cancel_heavy","engine":"fast","ops":2000000,"seconds":0.019912,"ops_per_sec":100444452,"events_per_sec":100444452,"ns_per_op":9.96,"allocations":0,"capacity":1000000}
-{"scenario":"mixed_realistic","engine":"fast","ops":2000000,"seconds":0.055551,"ops_per_sec":36002838,"events_per_sec":55725967,"ns_per_op":27.78,"allocations":0,"capacity":1000000}
-{"scenario":"worst_case_sweep","engine":"fast","ops":2000000,"seconds":0.051792,"ops_per_sec":38616129,"events_per_sec":115743873,"ns_per_op":25.90,"allocations":0,"capacity":1000000}
+{"scenario":"rest_only","engine":"fast","ops":2000000,"seconds":0.021427,"ops_per_sec":93338336,"events_per_sec":93338336,"ns_per_op":10.71,"allocations":0,"capacity":1000000}
+{"scenario":"cross_shallow","engine":"fast","ops":2000000,"seconds":0.030134,"ops_per_sec":66370231,"events_per_sec":165925577,"ns_per_op":15.07,"allocations":0,"capacity":1000000}
+{"scenario":"cross_deep","engine":"fast","ops":2000000,"seconds":0.057978,"ops_per_sec":34495830,"events_per_sec":75128260,"ns_per_op":28.99,"allocations":0,"capacity":1000000}
+{"scenario":"cancel_heavy","engine":"fast","ops":2000000,"seconds":0.020939,"ops_per_sec":95513757,"events_per_sec":95513757,"ns_per_op":10.47,"allocations":0,"capacity":1000000}
+{"scenario":"mixed_realistic","engine":"fast","ops":2000000,"seconds":0.054846,"ops_per_sec":36465449,"events_per_sec":56442005,"ns_per_op":27.42,"allocations":0,"capacity":1000000}
+{"scenario":"worst_case_sweep","engine":"fast","ops":2000000,"seconds":0.048286,"ops_per_sec":41419466,"events_per_sec":124146296,"ns_per_op":24.14,"allocations":0,"capacity":1000000}

@@ -12,6 +12,19 @@ optimization arc including the candidate that was measured and rejected. A live
 terminal depth ladder renders from replayed flow without being able to slow the
 matching thread.
 
+## Results
+
+![Benchmark dashboard](docs/images/dashboard.png)
+
+Generated from the measured results by `scripts/gen_dashboard.py --png`, never
+hand-edited, so the dashboard cannot drift from the runs that produced it. Open
+[`docs/dashboard.html`](docs/dashboard.html) for the interactive version with hover
+detail, light/dark themes and the full table.
+
+```bash
+./scripts/gen_dashboard.py --png      # after any benchmark run
+```
+
 ## Quickstart
 
 ```bash
