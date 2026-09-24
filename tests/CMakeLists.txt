@@ -12,8 +12,14 @@ add_executable(ob_tests
     test_smoke.cpp
     test_types.cpp
     test_command_events.cpp
+    test_event_buffer.cpp
 )
 target_link_libraries(ob_tests PRIVATE ob GTest::gtest_main)
+
+# Death tests rely on assert(), which NDEBUG would delete. Release adds -DNDEBUG
+# via CMAKE_CXX_FLAGS_RELEASE; target options land after it on the command line,
+# so this undefines it for the test binary only.
+target_compile_options(ob_tests PRIVATE -UNDEBUG)
 
 include(GoogleTest)
 gtest_discover_tests(ob_tests)

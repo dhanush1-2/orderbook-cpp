@@ -880,18 +880,32 @@ private:
     std::size_t n_        = 0;
 };
 
+namespace detail {
+// Holds the storage so that it is initialised BEFORE the EventBuffer base below,
+// because base classes are initialised in declaration order while members are
+// initialised after all bases. Passing a member's address to a base constructor
+// is the classic "base-from-member" problem: legal, but -Wuninitialized flags it
+// and the warning is right to. Making the storage its own base fixes the ordering
+// instead of arguing with the compiler about it.
+//
+// Found during execution: the original form here failed the build under -Werror
+// with "field 'storage_' is uninitialized when used here".
+template <std::size_t N>
+struct EventStorage {
+    std::array<Event, N> data{};
+};
+}  // namespace detail
+
 // Convenience for tests and tools: an EventBuffer that owns inline storage.
 // Not used on a measured hot path.
 template <std::size_t N>
-class FixedEventBuffer : public EventBuffer {
+class FixedEventBuffer : private detail::EventStorage<N>, public EventBuffer {
 public:
-    FixedEventBuffer() noexcept : EventBuffer(storage_.data(), N) {}
+    FixedEventBuffer() noexcept
+        : EventBuffer(detail::EventStorage<N>::data.data(), N) {}
 
     FixedEventBuffer(const FixedEventBuffer&) = delete;
     FixedEventBuffer& operator=(const FixedEventBuffer&) = delete;
-
-private:
-    std::array<Event, N> storage_{};
 };
 
 // The compile-time engine interface. A concept rather than a virtual base class:
@@ -914,12 +928,16 @@ concept Engine = requires(E e, const Command& c, EventBuffer& out) {
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-Expected: PASS, 21 tests total. The death test requires a Debug or `assert`-enabled build; if it fails in Release because `NDEBUG` disables `assert`, that is the correct reason. Fix it by building the test target without `NDEBUG`: add to `tests/CMakeLists.txt`:
+Expected: with a Release build the death test FAILS, because `NDEBUG` deletes the `assert` it relies on. That is the correct reason, and it was confirmed during execution. Fix it by keeping assertions in the test binary; add to `tests/CMakeLists.txt`:
 
 ```cmake
-# Death tests rely on assert(), so the test binary keeps assertions even in Release.
+# Death tests rely on assert(), which NDEBUG would delete. Release adds -DNDEBUG
+# via CMAKE_CXX_FLAGS_RELEASE; target options land after it on the command line,
+# so this undefines it for the test binary only.
 target_compile_options(ob_tests PRIVATE -UNDEBUG)
 ```
+
+Then re-run: PASS, 21 tests total.
 
 - [ ] **Step 5: Commit**
 
