@@ -26,7 +26,30 @@ Recorded per result, not assumed. The development machine:
 | `mach_absolute_time` | 41.6667 ns/tick (`mach_timebase` numer 125, denom 3) | 1 tick = 41.67 ns | — |
 | `clock_gettime_nsec_np(CLOCK_UPTIME_RAW)` | nanoseconds | 41 ns | 11.52 ns |
 | `CLOCK_MONOTONIC_RAW`, `steady_clock` | nanoseconds | 41 ns | — |
-| `CNTVCT_EL0` | `CNTFRQ_EL0` claims 1 GHz | ~42 (the 1 GHz is fiction) | 0.32 ns amortized |
+| `CNTVCT_EL0` | `CNTFRQ_EL0` claims 1 GHz | median **42**, min 41 (the 1 GHz is fiction) | 0.43 ns unserialized, **16.6 ns serialized** |
+
+`bench/clock.hpp` reports the **median** consecutive-read delta, not the minimum.
+That distinction is not pedantry: on one run the minimum came out at 17 ns and on
+the next at 41 ns, while the median was 42 ns both times. The minimum is an
+outlier-sensitive statistic, and a harness quoting it as "the resolution" would
+understate its own error bars by more than 2x. The median is reproducible, so it is
+what goes next to every published percentile.
+
+### Cross-platform confirmation
+
+The same header, built on both platforms, reports frequencies that differ by 40x
+and resolutions that agree to within one tick:
+
+| Platform | `CNTFRQ_EL0` | ns/tick | Measured median resolution | Serialized read cost |
+|---|---|---|---|---|
+| macOS arm64 (host) | 1,000,000,000 (fiction) | 1.000000 | **42.000 ns** | 16.58 ns |
+| Linux arm64 (Docker) | 24,000,000 (true) | 41.666667 | **41.667 ns** | 8.84 ns |
+
+That agreement is the evidence that converting through `CNTFRQ_EL0` is correct on
+both, rather than a hardcoded frequency happening to work on one. The serialized
+read (`isb` + `mrs`) costs materially more than the bare read on both, which is why
+the two are measured separately and why only the serialized figure is subtracted
+from latency samples.
 
 **The finest timestamp granularity available on this machine is ~41.67 ns.** The
 target operation costs a few hundred nanoseconds. That ratio is the central

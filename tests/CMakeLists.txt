@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(ob_tests
     test_smoke.cpp
+    test_clock.cpp
     test_types.cpp
     test_command_events.cpp
     test_event_buffer.cpp
