@@ -4009,6 +4009,20 @@ section, is in
 [`docs/superpowers/specs/`](docs/superpowers/specs/2026-09-22-order-book-matching-engine-design.md).
 ```
 
+- [ ] **Step 4b: Run the suite under sanitizers**
+
+```bash
+cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DOB_SANITIZE=ON -DOB_WARNINGS_AS_ERRORS=ON
+cmake --build build-asan
+# NOTE: detect_leaks is NOT supported by ASan on macOS and makes every test abort
+# with "detect_leaks is not supported on this platform". The CI ASan job is
+# Linux-only, where it works. Locally on macOS, omit it.
+ASAN_OPTIONS=abort_on_error=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+  ctest --test-dir build-asan --output-on-failure
+```
+
+Expected: every test passes with no ASan or UBSan diagnostics.
+
 - [ ] **Step 5: Run the complete suite one final time**
 
 ```bash
