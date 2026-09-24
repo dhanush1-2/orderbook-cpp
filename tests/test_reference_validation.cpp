@@ -1,8 +1,7 @@
-#include <ob/reference_engine.hpp>
-
 #include <gtest/gtest.h>
 
 #include <limits>
+#include <ob/reference_engine.hpp>
 #include <vector>
 
 namespace {
@@ -26,7 +25,7 @@ TEST(RefValidation, SatisfiesTheEngineConcept) {
 
 TEST(RefValidation, ValidLimitOrderIsAccepted) {
     ob::ReferenceEngine e;
-    const auto ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 100));
+    const auto          ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 100));
     ASSERT_EQ(ev.size(), 1u);
     EXPECT_EQ(ev[0].type, EventType::Accepted);
     EXPECT_EQ(ev[0].order_id, 1u);
@@ -36,7 +35,7 @@ TEST(RefValidation, ValidLimitOrderIsAccepted) {
 // E10
 TEST(RefValidation, ZeroQuantityIsRejected) {
     ob::ReferenceEngine e;
-    const auto ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 0));
+    const auto          ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 0));
     ASSERT_EQ(ev.size(), 1u);
     EXPECT_EQ(ev[0].type, EventType::Rejected);
     EXPECT_EQ(ev[0].reject, RejectReason::InvalidQuantity);
@@ -45,7 +44,7 @@ TEST(RefValidation, ZeroQuantityIsRejected) {
 // E11
 TEST(RefValidation, OversizeQuantityIsRejected) {
     ob::ReferenceEngine e;
-    const auto ev =
+    const auto          ev =
         run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, ob::kMaxOrderQty + 1));
     ASSERT_EQ(ev.size(), 1u);
     EXPECT_EQ(ev[0].reject, RejectReason::InvalidQuantity);
@@ -54,8 +53,8 @@ TEST(RefValidation, OversizeQuantityIsRejected) {
 // E12, E13
 TEST(RefValidation, PriceOutsideLadderIsRejected) {
     ob::ReferenceEngine e;
-    for (const ob::Ticks bad : {ob::Ticks{0}, ob::Ticks{-1}, ob::kMinTick - 1,
-                                ob::kMaxTick + 1, std::numeric_limits<ob::Ticks>::max()}) {
+    for (const ob::Ticks bad : {ob::Ticks{0}, ob::Ticks{-1}, ob::kMinTick - 1, ob::kMaxTick + 1,
+                                std::numeric_limits<ob::Ticks>::max()}) {
         const auto ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, bad, 100));
         ASSERT_EQ(ev.size(), 1u) << "price " << bad;
         EXPECT_EQ(ev[0].reject, RejectReason::PriceOutOfRange) << "price " << bad;
@@ -73,8 +72,8 @@ TEST(RefValidation, BothLadderBoundsAreAccepted) {
 // E15: Market ignores the price field entirely; it is not validated.
 TEST(RefValidation, MarketOrderPriceIsIgnoredNotValidated) {
     ob::ReferenceEngine e;
-    const auto ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Market,
-                                            std::numeric_limits<ob::Ticks>::max(), 100));
+    const auto          ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Market,
+                                                     std::numeric_limits<ob::Ticks>::max(), 100));
     ASSERT_GE(ev.size(), 1u);
     EXPECT_EQ(ev[0].type, EventType::Accepted);
 }
@@ -103,7 +102,7 @@ TEST(RefValidation, IdBelowHighWaterIsRejectedEvenIfNeverUsed) {
 // E49: id 0 falls out of the same rule, because the mark starts at 0.
 TEST(RefValidation, OrderIdZeroIsRejected) {
     ob::ReferenceEngine e;
-    const auto ev = run_one(e, ob::make_new(0, Side::Buy, OrderType::Limit, 10000, 10));
+    const auto          ev = run_one(e, ob::make_new(0, Side::Buy, OrderType::Limit, 10000, 10));
     EXPECT_EQ(ev[0].reject, RejectReason::DuplicateOrderId);
 }
 
@@ -120,7 +119,7 @@ TEST(RefValidation, RejectedCommandDoesNotAdvanceTheHighWaterMark) {
 // the fixed order (quantity, price, duplicate, capacity, would-cross).
 TEST(RefValidation, QuantityIsCheckedBeforePrice) {
     ob::ReferenceEngine e;
-    const auto ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, -5, 0));
+    const auto          ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, -5, 0));
     EXPECT_EQ(ev[0].reject, RejectReason::InvalidQuantity);
 }
 
@@ -135,7 +134,7 @@ TEST(RefValidation, PriceIsCheckedBeforeDuplicateId) {
 // E18: cancel of an ID that never existed.
 TEST(RefValidation, CancelOfUnknownIdIsRejected) {
     ob::ReferenceEngine e;
-    const auto ev = run_one(e, ob::make_cancel(999));
+    const auto          ev = run_one(e, ob::make_cancel(999));
     ASSERT_EQ(ev.size(), 1u);
     EXPECT_EQ(ev[0].type, EventType::Rejected);
     EXPECT_EQ(ev[0].reject, RejectReason::UnknownOrderId);
@@ -143,17 +142,17 @@ TEST(RefValidation, CancelOfUnknownIdIsRejected) {
 
 TEST(RefValidation, EveryCommandProducesAtLeastOneEvent) {
     ob::ReferenceEngine e;
-    for (const ob::Command c : {ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 100),
-                                ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 0),
-                                ob::make_cancel(12345),
-                                ob::make_new(2, Side::Sell, OrderType::Market, 0, 50)}) {
+    for (const ob::Command c :
+         {ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 100),
+          ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 0), ob::make_cancel(12345),
+          ob::make_new(2, Side::Sell, OrderType::Market, 0, 50)}) {
         EXPECT_GE(run_one(e, c).size(), 1u);
     }
 }
 
 TEST(RefValidation, SequenceNumbersAreMonotonicAndGapFree) {
     ob::ReferenceEngine e;
-    ob::Seq expected = 0;
+    ob::Seq             expected = 0;
     for (ob::OrderId id = 1; id <= 10; ++id) {
         for (const ob::Event& ev :
              run_one(e, ob::make_new(id, Side::Buy, OrderType::Limit, 10000, 10))) {
@@ -170,7 +169,7 @@ TEST(RefValidation, EmptyBookReportsNoPriceOnBothSides) {
 
 TEST(RefValidation, RejectedCommandLeavesTheBookUnchanged) {
     ob::ReferenceEngine e;
-    const std::size_t before = e.live_order_count();
+    const std::size_t   before = e.live_order_count();
     run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 0));
     EXPECT_EQ(e.live_order_count(), before);
     EXPECT_EQ(e.best_bid(), ob::kNoPrice);

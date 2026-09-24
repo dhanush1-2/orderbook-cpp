@@ -1,8 +1,7 @@
-#include <ob/types.hpp>
-
 #include <gtest/gtest.h>
 
 #include <limits>
+#include <ob/types.hpp>
 
 namespace {
 
@@ -24,7 +23,7 @@ TEST(Types, PriceRangeIsInclusiveOfBothBounds) {
 TEST(Types, ExtremePricesAreOutOfRange) {
     EXPECT_FALSE(ob::price_in_range(std::numeric_limits<ob::Ticks>::min()));
     EXPECT_FALSE(ob::price_in_range(std::numeric_limits<ob::Ticks>::max()));
-    EXPECT_FALSE(ob::price_in_range(0));      // tick 0 is deliberately not valid
+    EXPECT_FALSE(ob::price_in_range(0));  // tick 0 is deliberately not valid
     EXPECT_FALSE(ob::price_in_range(-1));
 }
 

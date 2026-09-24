@@ -16,10 +16,9 @@ using Slot    = std::uint32_t;  // index into the order pool
 
 // Ladder bounds. Tick 0 is deliberately invalid so that a zero-initialised or
 // default-constructed price can never be mistaken for a real one.
-inline constexpr Ticks kMinTick = 1;
-inline constexpr Ticks kMaxTick = 65536;
-inline constexpr std::size_t kLadderSize =
-    static_cast<std::size_t>(kMaxTick - kMinTick + 1);
+inline constexpr Ticks       kMinTick    = 1;
+inline constexpr Ticks       kMaxTick    = 65536;
+inline constexpr std::size_t kLadderSize = static_cast<std::size_t>(kMaxTick - kMinTick + 1);
 
 inline constexpr Slot  kInvalidSlot = 0xFFFF'FFFFu;
 inline constexpr Ticks kNoPrice     = std::numeric_limits<Ticks>::min();
@@ -61,7 +60,7 @@ struct RestingOrder {
     // E::kTracksArrival; FastEngine reports 0 because its Order struct is exactly
     // 32 bytes with no room for it, and its FIFO order is instead established by
     // the intrusive list structure plus differential testing against the reference.
-    Seq     arrival;
+    Seq arrival;
 };
 
 [[nodiscard]] constexpr Side opposite(Side s) noexcept {
@@ -80,8 +79,7 @@ struct RestingOrder {
 // Crossing is INCLUSIVE of equality (edge case E30).
 [[nodiscard]] constexpr bool crosses(Side taker_side, Ticks taker_price,
                                      Ticks book_price) noexcept {
-    return taker_side == Side::Buy ? taker_price >= book_price
-                                   : taker_price <= book_price;
+    return taker_side == Side::Buy ? taker_price >= book_price : taker_price <= book_price;
 }
 
 }  // namespace ob

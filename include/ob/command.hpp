@@ -2,7 +2,6 @@
 #pragma once
 
 #include <ob/types.hpp>
-
 #include <type_traits>
 
 namespace ob {
@@ -21,24 +20,24 @@ struct Command {
 
 static_assert(std::is_trivially_copyable_v<Command>);
 
-[[nodiscard]] constexpr Command make_new(OrderId id, Side side, OrderType type,
-                                        Ticks price, Qty qty) noexcept {
+[[nodiscard]] constexpr Command make_new(OrderId id, Side side, OrderType type, Ticks price,
+                                         Qty qty) noexcept {
     Command c{};
-    c.type = CommandType::New;
-    c.side = side;
+    c.type       = CommandType::New;
+    c.side       = side;
     c.order_type = type;
-    c.id = id;
-    c.price = price;
-    c.qty = qty;
+    c.id         = id;
+    c.price      = price;
+    c.qty        = qty;
     return c;
 }
 
 [[nodiscard]] constexpr Command make_cancel(OrderId id) noexcept {
     Command c{};
-    c.type = CommandType::Cancel;
-    c.id = id;
+    c.type  = CommandType::Cancel;
+    c.id    = id;
     c.price = kNoPrice;
-    c.qty = 0;
+    c.qty   = 0;
     return c;
 }
 

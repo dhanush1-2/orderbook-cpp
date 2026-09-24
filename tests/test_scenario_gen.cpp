@@ -1,11 +1,10 @@
-#include "model/scenario_gen.hpp"
-
-#include <ob/reference_engine.hpp>
-
 #include <gtest/gtest.h>
 
 #include <array>
+#include <ob/reference_engine.hpp>
 #include <vector>
+
+#include "model/scenario_gen.hpp"
 
 namespace {
 
@@ -18,7 +17,7 @@ TEST(Xoshiro, IsDeterministicForAGivenSeed) {
 
 TEST(Xoshiro, DifferentSeedsDiverge) {
     obtest::Xoshiro256ss a(1), b(2);
-    bool differed = false;
+    bool                 differed = false;
     for (int i = 0; i < 10; ++i) {
         if (a.next() != b.next()) {
             differed = true;
@@ -37,8 +36,8 @@ TEST(Xoshiro, BoundedStaysInRange) {
 
 TEST(Generator, IsReproducibleFromItsSeed) {
     const obtest::GenConfig cfg;
-    const auto a = obtest::generate_stream(99, 500, cfg);
-    const auto b = obtest::generate_stream(99, 500, cfg);
+    const auto              a = obtest::generate_stream(99, 500, cfg);
+    const auto              b = obtest::generate_stream(99, 500, cfg);
     ASSERT_EQ(a.size(), b.size());
     for (std::size_t i = 0; i < a.size(); ++i) {
         EXPECT_EQ(a[i].type, b[i].type) << i;
@@ -50,10 +49,10 @@ TEST(Generator, IsReproducibleFromItsSeed) {
 
 TEST(Generator, ProducesEveryOrderTypeAndBothSidesAndCancels) {
     const obtest::GenConfig cfg;
-    const auto s = obtest::generate_stream(4, 5000, cfg);
+    const auto              s = obtest::generate_stream(4, 5000, cfg);
 
     std::array<bool, 5> saw_type{};
-    bool saw_cancel = false, saw_buy = false, saw_sell = false;
+    bool                saw_cancel = false, saw_buy = false, saw_sell = false;
     for (const ob::Command& c : s) {
         if (c.type == ob::CommandType::Cancel) {
             saw_cancel = true;
@@ -78,7 +77,7 @@ TEST(Generator, ProducesEveryOrderTypeAndBothSidesAndCancels) {
 // silently degenerates into "everything rests" would make every later benchmark
 // meaningless while looking fine.
 TEST(Generator, ActuallyProducesTradesNotJustRestingOrders) {
-    const auto s = obtest::generate_stream(11, 5000, obtest::GenConfig{});
+    const auto s      = obtest::generate_stream(11, 5000, obtest::GenConfig{});
     const auto events = obtest::run_stream<ob::ReferenceEngine>(s);
 
     std::size_t trades = 0;
@@ -96,8 +95,8 @@ TEST(Shrinker, ReducesToAMinimalFailingStream) {
 
     // Predicate: "fails" iff the stream still contains the command at original
     // index 7's order id. The minimal failing input is therefore one command.
-    const ob::OrderId target = stream[7].id;
-    const auto still_fails = [target](const std::vector<ob::Command>& s) {
+    const ob::OrderId target      = stream[7].id;
+    const auto        still_fails = [target](const std::vector<ob::Command>& s) {
         for (const ob::Command& c : s) {
             if (c.id == target) {
                 return true;
@@ -116,8 +115,8 @@ TEST(Shrinker, ReducesToAMinimalFailingStream) {
 TEST(Shrinker, LeavesAnAlreadyMinimalStreamAlone) {
     const std::vector<ob::Command> one{
         ob::make_new(1, ob::Side::Buy, ob::OrderType::Limit, 10000, 10)};
-    const auto minimal = obtest::shrink(
-        one, [](const std::vector<ob::Command>& s) { return !s.empty(); });
+    const auto minimal =
+        obtest::shrink(one, [](const std::vector<ob::Command>& s) { return !s.empty(); });
     EXPECT_EQ(minimal.size(), 1u);
 }
 

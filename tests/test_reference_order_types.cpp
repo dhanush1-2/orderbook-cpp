@@ -1,7 +1,6 @@
-#include <ob/reference_engine.hpp>
-
 #include <gtest/gtest.h>
 
+#include <ob/reference_engine.hpp>
 #include <vector>
 
 namespace {
@@ -99,7 +98,7 @@ TEST(RefOrderTypes, IocRespectsItsLimitPrice) {
 // E3
 TEST(RefOrderTypes, FokIntoEmptyBookIsUnfillable) {
     ob::ReferenceEngine e;
-    const auto ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Fok, 10000, 100));
+    const auto          ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Fok, 10000, 100));
     ASSERT_EQ(ev.size(), 2u);
     EXPECT_EQ(ev[1].type, EventType::Cancelled);
     EXPECT_EQ(ev[1].cancel, CancelReason::Unfillable);
@@ -124,7 +123,7 @@ TEST(RefOrderTypes, FokOneUnitShortMutatesNothing) {
     feed(e, ob::make_new(1, Side::Sell, OrderType::Limit, 10000, 60));
     feed(e, ob::make_new(2, Side::Sell, OrderType::Limit, 10010, 39));  // 99 available
 
-    const ob::Ticks ask_before = e.best_ask();
+    const ob::Ticks   ask_before  = e.best_ask();
     const std::size_t live_before = e.live_order_count();
 
     const auto ev = run_one(e, ob::make_new(9, Side::Buy, OrderType::Fok, 10010, 100));

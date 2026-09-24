@@ -1,13 +1,12 @@
 // include/ob/engine_concept.hpp
 #pragma once
 
-#include <ob/command.hpp>
-#include <ob/events.hpp>
-
 #include <array>
 #include <cassert>
 #include <concepts>
 #include <cstddef>
+#include <ob/command.hpp>
+#include <ob/events.hpp>
 #include <span>
 #include <utility>
 
@@ -18,8 +17,7 @@ namespace ob {
 // rather than an aspiration.
 class EventBuffer {
 public:
-    EventBuffer(Event* data, std::size_t capacity) noexcept
-        : data_(data), capacity_(capacity) {}
+    EventBuffer(Event* data, std::size_t capacity) noexcept : data_(data), capacity_(capacity) {}
 
     void push(const Event& e) noexcept {
         // Overflow is a caller programming error (spec E47). Asserting keeps the
@@ -30,8 +28,8 @@ public:
 
     [[nodiscard]] std::size_t size() const noexcept { return n_; }
     [[nodiscard]] std::size_t capacity() const noexcept { return capacity_; }
-    [[nodiscard]] bool empty() const noexcept { return n_ == 0; }
-    void clear() noexcept { n_ = 0; }
+    [[nodiscard]] bool        empty() const noexcept { return n_ == 0; }
+    void                      clear() noexcept { n_ = 0; }
 
     [[nodiscard]] const Event& operator[](std::size_t i) const noexcept {
         assert(i < n_);
@@ -69,10 +67,9 @@ class FixedEventBuffer : private detail::EventStorage<N>, public EventBuffer {
 public:
     // detail::EventStorage<N> is declared first, so its `data` array is fully
     // initialised by the time EventBuffer's constructor runs.
-    FixedEventBuffer() noexcept
-        : EventBuffer(detail::EventStorage<N>::data.data(), N) {}
+    FixedEventBuffer() noexcept : EventBuffer(detail::EventStorage<N>::data.data(), N) {}
 
-    FixedEventBuffer(const FixedEventBuffer&) = delete;
+    FixedEventBuffer(const FixedEventBuffer&)            = delete;
     FixedEventBuffer& operator=(const FixedEventBuffer&) = delete;
 };
 

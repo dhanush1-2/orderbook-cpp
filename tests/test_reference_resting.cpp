@@ -1,7 +1,6 @@
-#include <ob/reference_engine.hpp>
-
 #include <gtest/gtest.h>
 
+#include <ob/reference_engine.hpp>
 #include <vector>
 
 namespace {
@@ -25,7 +24,7 @@ void feed(ob::ReferenceEngine& e, const ob::Command& c) {
 // E1
 TEST(RefResting, LimitIntoEmptyBookRestsAndBecomesBest) {
     ob::ReferenceEngine e;
-    const auto ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 100));
+    const auto          ev = run_one(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 100));
     ASSERT_EQ(ev.size(), 1u);
     EXPECT_EQ(ev[0].type, EventType::Accepted);
     EXPECT_EQ(e.best_bid(), 10000);

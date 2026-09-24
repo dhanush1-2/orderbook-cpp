@@ -1,8 +1,8 @@
-#include "cases/edge_cases.hpp"
+#include <gtest/gtest.h>
 
 #include <ob/reference_engine.hpp>
 
-#include <gtest/gtest.h>
+#include "cases/edge_cases.hpp"
 
 namespace {
 
@@ -31,7 +31,7 @@ TYPED_TEST(EdgeCases, AllCasesProduceTheSpecifiedEvents) {
 
         ASSERT_EQ(out.size(), tc.expect.size()) << "event count for " << tc.name;
         for (std::size_t i = 0; i < tc.expect.size(); ++i) {
-            const ob::Event& got = out[i];
+            const ob::Event&      got  = out[i];
             const obtest::Expect& want = tc.expect[i];
             EXPECT_EQ(got.type, want.type) << "event " << i;
             EXPECT_EQ(got.order_id, want.id) << "event " << i;
@@ -60,8 +60,8 @@ TYPED_TEST(EdgeCases, AllCasesProduceTheSpecifiedEvents) {
 TYPED_TEST(EdgeCases, SequenceNumbersAreMonotonicAndGapFreeAcrossEveryCase) {
     for (const obtest::Case& tc : obtest::all_edge_cases()) {
         SCOPED_TRACE(tc.name);
-        TypeParam engine;
-        ob::Seq expected = 0;
+        TypeParam                  engine;
+        ob::Seq                    expected = 0;
         ob::FixedEventBuffer<4096> buf;
 
         for (const ob::Command& c : tc.setup) {
@@ -82,7 +82,7 @@ TYPED_TEST(EdgeCases, SequenceNumbersAreMonotonicAndGapFreeAcrossEveryCase) {
 TYPED_TEST(EdgeCases, TheBookIsNeverCrossedAfterAnyCase) {
     for (const obtest::Case& tc : obtest::all_edge_cases()) {
         SCOPED_TRACE(tc.name);
-        TypeParam engine;
+        TypeParam                  engine;
         ob::FixedEventBuffer<4096> buf;
         for (const ob::Command& c : tc.setup) {
             buf.clear();

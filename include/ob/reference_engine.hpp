@@ -8,14 +8,13 @@
 //
 // Do not "improve" the performance of anything in this file.
 
-#include <ob/engine_concept.hpp>
-
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <functional>
 #include <list>
 #include <map>
+#include <ob/engine_concept.hpp>
 
 namespace ob {
 
@@ -64,9 +63,9 @@ public:
         bids_.clear();
         asks_.clear();
         live_.clear();
-        high_water_ = 0;
+        high_water_      = 0;
         arrival_counter_ = 0;
-        seq_ = 0;
+        seq_             = 0;
     }
 
 private:
@@ -90,14 +89,14 @@ private:
 
     Event base(EventType t, OrderId id) {
         Event e{};
-        e.seq = next_seq();
-        e.type = t;
+        e.seq      = next_seq();
+        e.type     = t;
         e.order_id = id;
         return e;
     }
 
     void emit_rejected(EventBuffer& out, OrderId id, RejectReason r) {
-        Event e = base(EventType::Rejected, id);
+        Event e  = base(EventType::Rejected, id);
         e.reject = r;
         out.push(e);
     }
@@ -140,10 +139,10 @@ private:
     }
 
     Event trade_event(OrderId taker, OrderId maker, Ticks px, Qty qty) {
-        Event e = base(EventType::Trade, taker);
+        Event e    = base(EventType::Trade, taker);
         e.maker_id = maker;
-        e.price = px;
-        e.qty = qty;
+        e.price    = px;
+        e.qty      = qty;
         return e;
     }
 
@@ -168,8 +167,8 @@ private:
     }
 
     [[nodiscard]] bool fok_is_fillable(const Command& c) const {
-        const QtySum available = (c.side == Side::Buy) ? fillable_qty(asks_, c)
-                                                      : fillable_qty(bids_, c);
+        const QtySum available =
+            (c.side == Side::Buy) ? fillable_qty(asks_, c) : fillable_qty(bids_, c);
         return available >= c.qty;
     }
 
@@ -178,7 +177,7 @@ private:
     template <class BookMap>
     void match_into(BookMap& book, const Command& c, Qty& remaining, EventBuffer& out) {
         while (remaining > 0 && !book.empty()) {
-            const auto lit = book.begin();  // best price on this side
+            const auto  lit      = book.begin();  // best price on this side
             const Ticks level_px = lit->first;
 
             // A Market order ignores price entirely; everything else must cross.
@@ -189,7 +188,7 @@ private:
             Level& level = lit->second;
             while (remaining > 0 && !level.empty()) {
                 RefOrder& maker = level.front();  // FIFO: oldest fills first
-                const Qty fill = std::min(remaining, maker.remaining);
+                const Qty fill  = std::min(remaining, maker.remaining);
 
                 remaining -= fill;
                 maker.remaining -= fill;
@@ -228,9 +227,9 @@ private:
 
         // Fok decides before touching anything (E36).
         if (c.order_type == OrderType::Fok && !fok_is_fillable(c)) {
-            Event e = base(EventType::Cancelled, c.id);
+            Event e  = base(EventType::Cancelled, c.id);
             e.cancel = CancelReason::Unfillable;
-            e.qty = c.qty;
+            e.qty    = c.qty;
             out.push(e);
             return;
         }
@@ -262,8 +261,8 @@ private:
             case OrderType::Ioc: {
                 Event e = base(EventType::Cancelled, c.id);
                 // NoLiquidity when nothing filled at all, IocRemainder otherwise.
-                e.cancel = (remaining == c.qty) ? CancelReason::NoLiquidity
-                                                : CancelReason::IocRemainder;
+                e.cancel =
+                    (remaining == c.qty) ? CancelReason::NoLiquidity : CancelReason::IocRemainder;
                 e.qty = remaining;
                 out.push(e);
                 return;
@@ -272,8 +271,9 @@ private:
             case OrderType::Fok:
                 // Unreachable: the pre-scan guarantees a Fok that gets here fills
                 // completely, so `remaining` is 0 and we returned above.
-                assert(false && "Fok reached the remainder branch: pre-scan disagreed "
-                                "with the match loop");
+                assert(false &&
+                       "Fok reached the remainder branch: pre-scan disagreed "
+                       "with the match loop");
                 return;
         }
     }
@@ -305,25 +305,25 @@ private:
             emit_rejected(out, c.id, RejectReason::UnknownOrderId);
             return;
         }
-        const Loc loc = it->second;
+        const Loc loc     = it->second;
         const Qty removed = (loc.side == Side::Buy) ? erase_order(bids_, loc.price, c.id)
-                                                   : erase_order(asks_, loc.price, c.id);
+                                                    : erase_order(asks_, loc.price, c.id);
         live_.erase(it);
 
-        Event e = base(EventType::Cancelled, c.id);
+        Event e  = base(EventType::Cancelled, c.id);
         e.cancel = CancelReason::UserRequested;
-        e.qty = removed;
-        e.price = loc.price;
+        e.qty    = removed;
+        e.price  = loc.price;
         out.push(e);
     }
 
-    BidBook bids_;
-    AskBook asks_;
-    std::map<OrderId, Loc> live_;  // live orders only
-    OrderId high_water_ = 0;       // highest accepted id; ids must strictly increase
-    std::size_t capacity_;
-    Seq arrival_counter_ = 0;
-    Seq seq_ = 0;
+    BidBook                bids_;
+    AskBook                asks_;
+    std::map<OrderId, Loc> live_;            // live orders only
+    OrderId                high_water_ = 0;  // highest accepted id; ids must strictly increase
+    std::size_t            capacity_;
+    Seq                    arrival_counter_ = 0;
+    Seq                    seq_             = 0;
 };
 
 static_assert(Engine<ReferenceEngine>);

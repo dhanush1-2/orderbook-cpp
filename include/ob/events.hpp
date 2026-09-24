@@ -2,7 +2,6 @@
 #pragma once
 
 #include <ob/types.hpp>
-
 #include <ostream>
 #include <type_traits>
 
@@ -31,35 +30,52 @@ static_assert(std::is_trivially_copyable_v<Event>);
 
 [[nodiscard]] constexpr const char* to_string(EventType t) noexcept {
     switch (t) {
-        case EventType::Accepted:  return "Accepted";
-        case EventType::Rejected:  return "Rejected";
-        case EventType::Trade:     return "Trade";
-        case EventType::Cancelled: return "Cancelled";
-        case EventType::Filled:    return "Filled";
+        case EventType::Accepted:
+            return "Accepted";
+        case EventType::Rejected:
+            return "Rejected";
+        case EventType::Trade:
+            return "Trade";
+        case EventType::Cancelled:
+            return "Cancelled";
+        case EventType::Filled:
+            return "Filled";
     }
     return "?";
 }
 
 [[nodiscard]] constexpr const char* to_string(RejectReason r) noexcept {
     switch (r) {
-        case RejectReason::None:             return "None";
-        case RejectReason::InvalidQuantity:  return "InvalidQuantity";
-        case RejectReason::PriceOutOfRange:  return "PriceOutOfRange";
-        case RejectReason::DuplicateOrderId: return "DuplicateOrderId";
-        case RejectReason::UnknownOrderId:   return "UnknownOrderId";
-        case RejectReason::WouldCross:       return "WouldCross";
-        case RejectReason::EngineCapacity:   return "EngineCapacity";
+        case RejectReason::None:
+            return "None";
+        case RejectReason::InvalidQuantity:
+            return "InvalidQuantity";
+        case RejectReason::PriceOutOfRange:
+            return "PriceOutOfRange";
+        case RejectReason::DuplicateOrderId:
+            return "DuplicateOrderId";
+        case RejectReason::UnknownOrderId:
+            return "UnknownOrderId";
+        case RejectReason::WouldCross:
+            return "WouldCross";
+        case RejectReason::EngineCapacity:
+            return "EngineCapacity";
     }
     return "?";
 }
 
 [[nodiscard]] constexpr const char* to_string(CancelReason r) noexcept {
     switch (r) {
-        case CancelReason::None:          return "None";
-        case CancelReason::UserRequested: return "UserRequested";
-        case CancelReason::NoLiquidity:   return "NoLiquidity";
-        case CancelReason::Unfillable:    return "Unfillable";
-        case CancelReason::IocRemainder:  return "IocRemainder";
+        case CancelReason::None:
+            return "None";
+        case CancelReason::UserRequested:
+            return "UserRequested";
+        case CancelReason::NoLiquidity:
+            return "NoLiquidity";
+        case CancelReason::Unfillable:
+            return "Unfillable";
+        case CancelReason::IocRemainder:
+            return "IocRemainder";
     }
     return "?";
 }

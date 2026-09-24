@@ -1,7 +1,6 @@
-#include <ob/reference_engine.hpp>
-
 #include <gtest/gtest.h>
 
+#include <ob/reference_engine.hpp>
 #include <vector>
 
 namespace {
@@ -137,8 +136,8 @@ TEST(RefCancel, CancelFreesCapacity) {
 TEST(RefCancel, RejectedCancelLeavesTheBookBitForBitUnchanged) {
     ob::ReferenceEngine e;
     feed(e, ob::make_new(1, Side::Buy, OrderType::Limit, 10000, 100));
-    const ob::Ticks bid = e.best_bid();
-    const std::size_t n = e.live_order_count();
+    const ob::Ticks   bid = e.best_bid();
+    const std::size_t n   = e.live_order_count();
 
     run_one(e, ob::make_cancel(4242));
     EXPECT_EQ(e.best_bid(), bid);

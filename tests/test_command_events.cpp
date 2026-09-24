@@ -1,8 +1,7 @@
-#include <ob/command.hpp>
-#include <ob/events.hpp>
-
 #include <gtest/gtest.h>
 
+#include <ob/command.hpp>
+#include <ob/events.hpp>
 #include <sstream>
 #include <string>
 
@@ -28,35 +27,35 @@ TEST(Command, CancelFactoryLeavesPriceAndQtyNeutral) {
 
 TEST(Event, EqualityComparesEveryField) {
     ob::Event a{};
-    a.seq = 1;
-    a.type = ob::EventType::Trade;
-    a.order_id = 9;
-    a.maker_id = 7;
-    a.price = 10050;
-    a.qty = 300;
+    a.seq       = 1;
+    a.type      = ob::EventType::Trade;
+    a.order_id  = 9;
+    a.maker_id  = 7;
+    a.price     = 10050;
+    a.qty       = 300;
     ob::Event b = a;
     EXPECT_EQ(a, b);
 
     b.qty = 299;
     EXPECT_NE(a, b);
 
-    b = a;
+    b          = a;
     b.maker_id = 8;
     EXPECT_NE(a, b);
 
-    b = a;
+    b     = a;
     b.seq = 2;
     EXPECT_NE(a, b);
 }
 
 TEST(Event, PrintToProducesReadableOutput) {
     ob::Event e{};
-    e.seq = 5;
-    e.type = ob::EventType::Trade;
+    e.seq      = 5;
+    e.type     = ob::EventType::Trade;
     e.order_id = 99;
     e.maker_id = 7;
-    e.price = 10050;
-    e.qty = 300;
+    e.price    = 10050;
+    e.qty      = 300;
 
     std::ostringstream os;
     PrintTo(e, &os);
@@ -69,9 +68,9 @@ TEST(Event, PrintToProducesReadableOutput) {
 
 TEST(Event, RejectedPrintIncludesTheReasonName) {
     ob::Event e{};
-    e.type = ob::EventType::Rejected;
+    e.type     = ob::EventType::Rejected;
     e.order_id = 3;
-    e.reject = ob::RejectReason::PriceOutOfRange;
+    e.reject   = ob::RejectReason::PriceOutOfRange;
 
     std::ostringstream os;
     PrintTo(e, &os);

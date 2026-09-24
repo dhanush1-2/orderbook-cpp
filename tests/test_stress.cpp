@@ -1,11 +1,10 @@
-#include "model/scenario_gen.hpp"
+#include <gtest/gtest.h>
 
 #include <ob/invariants.hpp>
 #include <ob/reference_engine.hpp>
-
-#include <gtest/gtest.h>
-
 #include <vector>
+
+#include "model/scenario_gen.hpp"
 
 namespace {
 
@@ -13,11 +12,11 @@ namespace {
 // test that finds what the hand-written cases did not.
 TEST(Stress, InvariantsHoldAcrossManySeeds) {
     std::vector<ob::Event> storage(8192);
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer        buf(storage.data(), storage.size());
 
     for (std::uint64_t seed = 1; seed <= 25; ++seed) {
         ob::ReferenceEngine engine;
-        const auto stream = obtest::generate_stream(seed, 4000, obtest::GenConfig{});
+        const auto          stream = obtest::generate_stream(seed, 4000, obtest::GenConfig{});
 
         for (std::size_t i = 0; i < stream.size(); ++i) {
             buf.clear();
@@ -34,11 +33,11 @@ TEST(Stress, InvariantsHoldAcrossManySeeds) {
 // lives here. Bids fill the low half and asks the high half so the book never
 // crosses, which also exercises both ladder extremes.
 TEST(Stress, EveryTickInARangeCanBeOccupiedIncludingBothExtremes) {
-    ob::ReferenceEngine engine(200'000);
+    ob::ReferenceEngine    engine(200'000);
     std::vector<ob::Event> storage(8192);
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer        buf(storage.data(), storage.size());
 
-    ob::OrderId id = 1;
+    ob::OrderId     id  = 1;
     const ob::Ticks mid = ob::kMaxTick / 2;
     for (ob::Ticks px = ob::kMinTick; px <= mid; ++px) {
         buf.clear();

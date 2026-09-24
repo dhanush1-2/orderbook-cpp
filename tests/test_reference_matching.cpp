@@ -1,7 +1,6 @@
-#include <ob/reference_engine.hpp>
-
 #include <gtest/gtest.h>
 
+#include <ob/reference_engine.hpp>
 #include <vector>
 
 namespace {
@@ -101,9 +100,9 @@ TEST(RefMatching, ExactQuantityMatchLeavesNothing) {
 // E27: a partially filled resting order keeps its place at the front of the queue.
 TEST(RefMatching, PartiallyFilledMakerKeepsTimePriority) {
     ob::ReferenceEngine e;
-    feed(e, ob::make_new(1, Side::Sell, OrderType::Limit, 10000, 100));  // first
-    feed(e, ob::make_new(2, Side::Sell, OrderType::Limit, 10000, 100));  // second
-    run_one(e, ob::make_new(3, Side::Buy, OrderType::Limit, 10000, 30)); // takes 30 of id 1
+    feed(e, ob::make_new(1, Side::Sell, OrderType::Limit, 10000, 100));   // first
+    feed(e, ob::make_new(2, Side::Sell, OrderType::Limit, 10000, 100));   // second
+    run_one(e, ob::make_new(3, Side::Buy, OrderType::Limit, 10000, 30));  // takes 30 of id 1
 
     // id 1 has 70 left and must still fill before id 2.
     const auto ev = run_one(e, ob::make_new(4, Side::Buy, OrderType::Limit, 10000, 70));
@@ -150,9 +149,9 @@ TEST(RefMatching, SweepsLevelsInPriceOrderAtEachMakersPrice) {
 // The book must never be observably crossed.
 TEST(RefMatching, BookIsNeverCrossedAfterAnyOperation) {
     ob::ReferenceEngine e;
-    ob::OrderId id = 1;
+    ob::OrderId         id = 1;
     for (int i = 0; i < 200; ++i) {
-        const Side s = (i % 2 == 0) ? Side::Buy : Side::Sell;
+        const Side      s  = (i % 2 == 0) ? Side::Buy : Side::Sell;
         const ob::Ticks px = 10000 + static_cast<ob::Ticks>(i % 7) - 3;
         feed(e, ob::make_new(id++, s, OrderType::Limit, px, 10));
         if (e.best_bid() != ob::kNoPrice && e.best_ask() != ob::kNoPrice) {

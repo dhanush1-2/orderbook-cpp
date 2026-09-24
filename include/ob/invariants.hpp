@@ -7,9 +7,8 @@
 // Returns a result rather than asserting, so the fuzzer can report WHICH invariant
 // broke instead of just dying.
 
-#include <ob/engine_concept.hpp>
-
 #include <cstddef>
+#include <ob/engine_concept.hpp>
 #include <type_traits>
 #include <unordered_set>
 #include <vector>
@@ -26,7 +25,7 @@ concept Inspectable = Engine<E> && requires(const E e) {
 };
 
 struct InvariantResult {
-    bool        ok = true;
+    bool        ok      = true;
     const char* failure = nullptr;
 };
 
@@ -43,14 +42,14 @@ template <Inspectable E>
     }
 
     std::unordered_set<OrderId> ids;
-    Ticks max_bid = kNoPrice;
-    Ticks min_ask = kNoPrice;
+    Ticks                       max_bid = kNoPrice;
+    Ticks                       min_ask = kNoPrice;
 
     // Per-side, per-level FIFO tracking.
-    Side  cur_side = Side::Buy;
-    Ticks cur_price = kNoPrice;
+    Side  cur_side     = Side::Buy;
+    Ticks cur_price    = kNoPrice;
     Seq   last_arrival = 0;
-    bool  in_level = false;
+    bool  in_level     = false;
 
     Ticks prev_bid_px = kNoPrice;
     Ticks prev_ask_px = kNoPrice;
@@ -92,9 +91,9 @@ template <Inspectable E>
                 }
                 prev_ask_px = o.price;
             }
-            cur_side = o.side;
+            cur_side  = o.side;
             cur_price = o.price;
-            in_level = true;
+            in_level  = true;
         }
         last_arrival = o.arrival;
 

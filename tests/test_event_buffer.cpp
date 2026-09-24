@@ -1,21 +1,20 @@
-#include <ob/engine_concept.hpp>
-
 #include <gtest/gtest.h>
 
 #include <array>
+#include <ob/engine_concept.hpp>
 
 namespace {
 
 ob::Event mk(ob::Seq s, ob::EventType t) {
     ob::Event e{};
-    e.seq = s;
+    e.seq  = s;
     e.type = t;
     return e;
 }
 
 TEST(EventBuffer, StartsEmpty) {
     std::array<ob::Event, 4> storage{};
-    const ob::EventBuffer buf(storage.data(), storage.size());
+    const ob::EventBuffer    buf(storage.data(), storage.size());
     EXPECT_TRUE(buf.empty());
     EXPECT_EQ(buf.size(), 0u);
     EXPECT_EQ(buf.capacity(), 4u);
@@ -23,7 +22,7 @@ TEST(EventBuffer, StartsEmpty) {
 
 TEST(EventBuffer, PushAppendsInOrder) {
     std::array<ob::Event, 4> storage{};
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer          buf(storage.data(), storage.size());
     buf.push(mk(1, ob::EventType::Accepted));
     buf.push(mk(2, ob::EventType::Trade));
 
@@ -34,7 +33,7 @@ TEST(EventBuffer, PushAppendsInOrder) {
 
 TEST(EventBuffer, ClearResetsSizeButNotCapacity) {
     std::array<ob::Event, 4> storage{};
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer          buf(storage.data(), storage.size());
     buf.push(mk(1, ob::EventType::Accepted));
     buf.clear();
     EXPECT_TRUE(buf.empty());
@@ -44,7 +43,7 @@ TEST(EventBuffer, ClearResetsSizeButNotCapacity) {
 // Edge case E46: a buffer sized exactly to the event count must work.
 TEST(EventBuffer, FillingToExactCapacitySucceeds) {
     std::array<ob::Event, 2> storage{};
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer          buf(storage.data(), storage.size());
     buf.push(mk(1, ob::EventType::Accepted));
     buf.push(mk(2, ob::EventType::Filled));
     EXPECT_EQ(buf.size(), 2u);
@@ -53,7 +52,7 @@ TEST(EventBuffer, FillingToExactCapacitySucceeds) {
 
 TEST(EventBuffer, ViewIsIterableAndRangeBased) {
     std::array<ob::Event, 4> storage{};
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer          buf(storage.data(), storage.size());
     buf.push(mk(7, ob::EventType::Accepted));
     buf.push(mk(8, ob::EventType::Filled));
 
@@ -77,7 +76,7 @@ TEST(FixedEventBuffer, OwnsItsStorageAndReportsCapacity) {
 TEST(EventBufferDeathTest, OverflowAborts) {
     GTEST_FLAG_SET(death_test_style, "threadsafe");
     std::array<ob::Event, 1> storage{};
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer          buf(storage.data(), storage.size());
     buf.push(mk(1, ob::EventType::Accepted));
     EXPECT_DEATH(buf.push(mk(2, ob::EventType::Filled)), "");
 }
