@@ -14,10 +14,9 @@
 // THE TRAP: `~0ull << 64` is undefined behavior, and the case is reached whenever
 // the index lands on a word boundary. Both mask helpers guard it explicitly.
 
-#include <ob/types.hpp>
-
 #include <cassert>
 #include <cstdint>
+#include <ob/types.hpp>
 
 namespace ob {
 
@@ -85,7 +84,8 @@ public:
         }
         if (const std::uint64_t m2 = l2_ & mask_above(w1 & 63); m2 != 0) {
             const std::uint32_t nw1 = static_cast<std::uint32_t>(__builtin_ctzll(m2));
-            const std::uint32_t nw0 = (nw1 << 6) | static_cast<std::uint32_t>(__builtin_ctzll(l1_[nw1]));
+            const std::uint32_t nw0 =
+                (nw1 << 6) | static_cast<std::uint32_t>(__builtin_ctzll(l1_[nw1]));
             return (nw0 << 6) | static_cast<std::uint32_t>(__builtin_ctzll(l0_[nw0]));
         }
         return kNotFound;
@@ -127,9 +127,7 @@ private:
     static constexpr std::uint32_t kL0Words = kBits / 64;     // 1024
     static constexpr std::uint32_t kL1Words = kL0Words / 64;  // 16
 
-    static constexpr std::uint64_t bit(std::uint32_t b) noexcept {
-        return std::uint64_t{1} << b;
-    }
+    static constexpr std::uint64_t bit(std::uint32_t b) noexcept { return std::uint64_t{1} << b; }
     // Bits b..63. Safe: b is always < 64, so no shift-by-64 here.
     static constexpr std::uint64_t mask_at_or_above(std::uint32_t b) noexcept {
         return ~std::uint64_t{0} << b;

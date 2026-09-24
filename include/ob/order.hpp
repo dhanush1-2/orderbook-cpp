@@ -2,7 +2,6 @@
 #pragma once
 
 #include <ob/types.hpp>
-
 #include <type_traits>
 
 namespace ob {

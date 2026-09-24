@@ -1,11 +1,10 @@
-#include "model/scenario_gen.hpp"
+#include <gtest/gtest.h>
 
 #include <ob/fast_engine.hpp>
 #include <ob/invariants.hpp>
-
-#include <gtest/gtest.h>
-
 #include <vector>
+
+#include "model/scenario_gen.hpp"
 
 namespace {
 
@@ -51,11 +50,11 @@ TEST(FastEngine, TheSpecWorkedExample) {
 // FIFO is covered by the internal structural check and by differential testing.
 TEST(FastEngine, GenericInvariantsHoldAcrossRandomStreams) {
     std::vector<ob::Event> storage(8192);
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer        buf(storage.data(), storage.size());
 
     for (std::uint64_t seed = 1; seed <= 15; ++seed) {
         ob::FastEngine e(ob::FastEngine::Config{4096});
-        const auto stream = obtest::generate_stream(seed, 3000, obtest::GenConfig{});
+        const auto     stream = obtest::generate_stream(seed, 3000, obtest::GenConfig{});
         for (std::size_t i = 0; i < stream.size(); ++i) {
             buf.clear();
             e.submit(stream[i], buf);
@@ -71,11 +70,11 @@ TEST(FastEngine, GenericInvariantsHoldAcrossRandomStreams) {
 // list being acyclic and disjoint from the live set.
 TEST(FastEngine, InternalInvariantsHoldAcrossRandomStreams) {
     std::vector<ob::Event> storage(8192);
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer        buf(storage.data(), storage.size());
 
     for (std::uint64_t seed = 1; seed <= 15; ++seed) {
         ob::FastEngine e(ob::FastEngine::Config{4096});
-        const auto stream = obtest::generate_stream(seed, 3000, obtest::GenConfig{});
+        const auto     stream = obtest::generate_stream(seed, 3000, obtest::GenConfig{});
         for (std::size_t i = 0; i < stream.size(); ++i) {
             buf.clear();
             e.submit(stream[i], buf);
@@ -117,9 +116,9 @@ TEST(FastEngine, NonRestingOrderTypesDoNotConsumePoolSlots) {
 TEST(FastEngine, ResetMakesItIndistinguishableFromAFreshEngine) {
     const auto stream = obtest::generate_stream(9, 2000, obtest::GenConfig{});
 
-    ob::FastEngine reused(ob::FastEngine::Config{4096});
+    ob::FastEngine         reused(ob::FastEngine::Config{4096});
     std::vector<ob::Event> storage(8192);
-    ob::EventBuffer buf(storage.data(), storage.size());
+    ob::EventBuffer        buf(storage.data(), storage.size());
     for (const ob::Command& c : stream) {
         buf.clear();
         reused.submit(c, buf);
@@ -133,7 +132,7 @@ TEST(FastEngine, ResetMakesItIndistinguishableFromAFreshEngine) {
         after.insert(after.end(), buf.begin(), buf.end());
     }
 
-    ob::FastEngine fresh(ob::FastEngine::Config{4096});
+    ob::FastEngine         fresh(ob::FastEngine::Config{4096});
     std::vector<ob::Event> want;
     for (const ob::Command& c : stream) {
         buf.clear();
@@ -154,7 +153,7 @@ TEST(FastEngine, FokPreScanOneUnitShortMutatesNothing) {
     feed(e, ob::make_new(1, Side::Sell, OrderType::Limit, 10000, 60));
     feed(e, ob::make_new(2, Side::Sell, OrderType::Limit, 10010, 39));
 
-    const auto before_ask = e.best_ask();
+    const auto before_ask  = e.best_ask();
     const auto before_live = e.live_order_count();
 
     const auto ev = run_one(e, ob::make_new(9, Side::Buy, OrderType::Fok, 10010, 100));

@@ -12,10 +12,9 @@
 // Templated on Side so best() becomes "highest occupied bit" or "lowest occupied
 // bit" at compile time, with no runtime branch.
 
+#include <cassert>
 #include <ob/level_bitmap.hpp>
 #include <ob/order_pool.hpp>
-
-#include <cassert>
 #include <vector>
 
 namespace ob {
@@ -121,7 +120,7 @@ public:
         return i == LevelBitmap::kNotFound ? kNoPrice : px_of(i);
     }
 
-    [[nodiscard]] bool empty() const noexcept { return occupied_.empty(); }
+    [[nodiscard]] bool        empty() const noexcept { return occupied_.empty(); }
     [[nodiscard]] std::size_t order_count() const noexcept { return orders_; }
 
     // Visits (price, level) best-to-worst, stopping early when `fn` returns false.
@@ -177,15 +176,11 @@ private:
         }
     }
 
-    static std::size_t idx(Ticks px) noexcept {
-        return static_cast<std::size_t>(px - kMinTick);
-    }
+    static std::size_t   idx(Ticks px) noexcept { return static_cast<std::size_t>(px - kMinTick); }
     static std::uint32_t idx32(Ticks px) noexcept {
         return static_cast<std::uint32_t>(px - kMinTick);
     }
-    static Ticks px_of(std::uint32_t i) noexcept {
-        return static_cast<Ticks>(i) + kMinTick;
-    }
+    static Ticks px_of(std::uint32_t i) noexcept { return static_cast<Ticks>(i) + kMinTick; }
 
     std::vector<PriceLevel> levels_;
     LevelBitmap             occupied_;

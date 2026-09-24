@@ -1,8 +1,7 @@
-#include <ob/level_bitmap.hpp>
-
 #include <gtest/gtest.h>
 
 #include <iterator>
+#include <ob/level_bitmap.hpp>
 #include <random>
 #include <set>
 
@@ -126,9 +125,9 @@ TEST(LevelBitmap, ResetEmptiesEverything) {
 // arrangement of bits to show up, which is exactly what randomization finds.
 TEST(LevelBitmap, MatchesASetModelUnderRandomMutationAndQueries) {
     for (std::uint64_t seed = 1; seed <= 20; ++seed) {
-        LevelBitmap b;
+        LevelBitmap             b;
         std::set<std::uint32_t> model;
-        std::mt19937_64 rng(seed);
+        std::mt19937_64         rng(seed);
 
         for (int op = 0; op < 4000; ++op) {
             const std::uint32_t i = static_cast<std::uint32_t>(rng() % LevelBitmap::kBits);
@@ -144,12 +143,12 @@ TEST(LevelBitmap, MatchesASetModelUnderRandomMutationAndQueries) {
 
             const std::uint32_t q = static_cast<std::uint32_t>(rng() % LevelBitmap::kBits);
 
-            const auto up = model.lower_bound(q);
+            const auto          up        = model.lower_bound(q);
             const std::uint32_t want_next = (up == model.end()) ? LevelBitmap::kNotFound : *up;
             ASSERT_EQ(b.next_set_at_or_above(q), want_next)
                 << "seed " << seed << " op " << op << " q " << q;
 
-            const auto after = model.upper_bound(q);
+            const auto          after = model.upper_bound(q);
             const std::uint32_t want_prev =
                 (after == model.begin()) ? LevelBitmap::kNotFound : *std::prev(after);
             ASSERT_EQ(b.prev_set_at_or_below(q), want_prev)

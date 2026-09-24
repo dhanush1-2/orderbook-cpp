@@ -1,7 +1,6 @@
-#include <ob/order_pool.hpp>
-
 #include <gtest/gtest.h>
 
+#include <ob/order_pool.hpp>
 #include <unordered_set>
 #include <vector>
 
@@ -23,7 +22,7 @@ TEST(OrderPool, FreshPoolIsEmptyWithTheRequestedCapacity) {
 }
 
 TEST(OrderPool, AllocReturnsDistinctSlotsUntilExhausted) {
-    ob::OrderPool p(64);
+    ob::OrderPool                p(64);
     std::unordered_set<ob::Slot> seen;
     for (std::size_t i = 0; i < 64; ++i) {
         const ob::Slot s = p.alloc();
@@ -38,11 +37,11 @@ TEST(OrderPool, AllocReturnsDistinctSlotsUntilExhausted) {
 
 // Spec E39: exhaustion is a capacity condition, and freeing makes room again.
 TEST(OrderPool, FreeingMakesCapacityAvailableAgain) {
-    ob::OrderPool p(4);
+    ob::OrderPool         p(4);
     std::vector<ob::Slot> slots;
     for (int i = 0; i < 4; ++i) {
         const ob::Slot s = p.alloc();
-        p.at(s).id = static_cast<ob::OrderId>(i + 1);
+        p.at(s).id       = static_cast<ob::OrderId>(i + 1);
         slots.push_back(s);
     }
     ASSERT_EQ(p.alloc(), ob::kInvalidSlot);
@@ -55,13 +54,13 @@ TEST(OrderPool, FreeingMakesCapacityAvailableAgain) {
 }
 
 TEST(OrderPool, StoredFieldsRoundTrip) {
-    ob::OrderPool p(8);
+    ob::OrderPool  p(8);
     const ob::Slot s = p.alloc();
-    ob::Order& o = p.at(s);
-    o.id = 12345;
-    o.price = 10050;
-    o.remaining = 300;
-    o.side = ob::Side::Sell;
+    ob::Order&     o = p.at(s);
+    o.id             = 12345;
+    o.price          = 10050;
+    o.remaining      = 300;
+    o.side           = ob::Side::Sell;
 
     const ob::Order& r = p.at(s);
     EXPECT_EQ(r.id, 12345u);
@@ -97,7 +96,7 @@ TEST(OrderPool, FreeListLengthAccountsForEverySlot) {
     ob::OrderPool p(32);
     EXPECT_EQ(p.free_list_length(), 32u);
     const ob::Slot a = p.alloc();
-    p.at(a).id = 1;
+    p.at(a).id       = 1;
     EXPECT_EQ(p.free_list_length() + p.size(), p.capacity());
     p.free(a);
     EXPECT_EQ(p.free_list_length(), 32u);
@@ -107,9 +106,9 @@ TEST(OrderPool, FreeListLengthAccountsForEverySlot) {
 // arbitrarily far away. Catching it at the call site is worth an assert.
 TEST(OrderPoolDeathTest, DoubleFreeAborts) {
     GTEST_FLAG_SET(death_test_style, "threadsafe");
-    ob::OrderPool p(4);
+    ob::OrderPool  p(4);
     const ob::Slot s = p.alloc();
-    p.at(s).id = 1;
+    p.at(s).id       = 1;
     p.free(s);
     EXPECT_DEATH(p.free(s), "");
 }

@@ -7,10 +7,9 @@
 // a handful of instructions and touch no allocator. Exhaustion returns
 // kInvalidSlot, which the engine turns into Rejected(EngineCapacity) (spec E39).
 
-#include <ob/order.hpp>
-
 #include <cassert>
 #include <cstddef>
+#include <ob/order.hpp>
 #include <vector>
 
 namespace ob {
@@ -59,7 +58,7 @@ public:
 
     [[nodiscard]] std::size_t capacity() const noexcept { return slots_.size(); }
     [[nodiscard]] std::size_t size() const noexcept { return live_; }
-    [[nodiscard]] bool full() const noexcept { return free_head_ == kInvalidSlot; }
+    [[nodiscard]] bool        full() const noexcept { return free_head_ == kInvalidSlot; }
 
     // Debug helper for the invariant checker. Returns the free-list length, or
     // SIZE_MAX if the walk exceeds capacity, which means the list has a cycle.

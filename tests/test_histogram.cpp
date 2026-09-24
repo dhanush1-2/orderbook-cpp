@@ -1,5 +1,3 @@
-#include "../bench/histogram.hpp"
-
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -7,6 +5,8 @@
 #include <numeric>
 #include <random>
 #include <vector>
+
+#include "../bench/histogram.hpp"
 
 namespace {
 

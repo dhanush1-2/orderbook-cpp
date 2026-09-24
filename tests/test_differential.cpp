@@ -1,16 +1,15 @@
-#include "model/scenario_gen.hpp"
-
-#include <ob/fast_engine.hpp>
-#include <ob/reference_engine.hpp>
-
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <ob/fast_engine.hpp>
+#include <ob/reference_engine.hpp>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "model/scenario_gen.hpp"
 
 namespace {
 
@@ -18,11 +17,16 @@ constexpr std::size_t kNoDivergence = static_cast<std::size_t>(-1);
 
 const char* type_name(ob::OrderType t) {
     switch (t) {
-        case ob::OrderType::Limit:    return "Limit";
-        case ob::OrderType::Market:   return "Market";
-        case ob::OrderType::Ioc:      return "Ioc";
-        case ob::OrderType::Fok:      return "Fok";
-        case ob::OrderType::PostOnly: return "PostOnly";
+        case ob::OrderType::Limit:
+            return "Limit";
+        case ob::OrderType::Market:
+            return "Market";
+        case ob::OrderType::Ioc:
+            return "Ioc";
+        case ob::OrderType::Fok:
+            return "Fok";
+        case ob::OrderType::PostOnly:
+            return "PostOnly";
     }
     return "?";
 }
@@ -30,14 +34,14 @@ const char* type_name(ob::OrderType t) {
 // Runs a stream through both engines and returns the index of the first differing
 // event, or kNoDivergence when they agree completely.
 std::size_t first_divergence(const std::vector<ob::Command>& stream,
-                            std::string* detail = nullptr) {
+                             std::string*                    detail = nullptr) {
     constexpr std::size_t kCap = 64 * 1024;
-    ob::ReferenceEngine ref(kCap);
-    ob::FastEngine fast(ob::FastEngine::Config{kCap});
+    ob::ReferenceEngine   ref(kCap);
+    ob::FastEngine        fast(ob::FastEngine::Config{kCap});
 
     std::vector<ob::Event> rs(1 << 17), fs(1 << 17);
-    ob::EventBuffer rb(rs.data(), rs.size());
-    ob::EventBuffer fb(fs.data(), fs.size());
+    ob::EventBuffer        rb(rs.data(), rs.size());
+    ob::EventBuffer        fb(fs.data(), fs.size());
 
     std::size_t event_index = 0;
     for (std::size_t i = 0; i < stream.size(); ++i) {
@@ -75,10 +79,10 @@ std::size_t first_divergence(const std::vector<ob::Command>& stream,
             ref.live_order_count() != fast.live_order_count()) {
             if (detail != nullptr) {
                 std::ostringstream os;
-                os << "command " << i << ": book state diverged\n  reference: bid="
-                   << ref.best_bid() << " ask=" << ref.best_ask()
-                   << " live=" << ref.live_order_count() << "\n  fast:      bid="
-                   << fast.best_bid() << " ask=" << fast.best_ask()
+                os << "command " << i
+                   << ": book state diverged\n  reference: bid=" << ref.best_bid()
+                   << " ask=" << ref.best_ask() << " live=" << ref.live_order_count()
+                   << "\n  fast:      bid=" << fast.best_bid() << " ask=" << fast.best_ask()
                    << " live=" << fast.live_order_count();
                 *detail = os.str();
             }
@@ -101,9 +105,8 @@ std::string as_cpp(const std::vector<ob::Command>& s) {
         if (c.type == ob::CommandType::Cancel) {
             os << "  cxl(" << c.id << "),\n";
         } else {
-            os << "  " << (c.side == ob::Side::Buy ? "buy(" : "sell(") << c.id << ", "
-               << c.price << ", " << c.qty << ", OrderType::" << type_name(c.order_type)
-               << "),\n";
+            os << "  " << (c.side == ob::Side::Buy ? "buy(" : "sell(") << c.id << ", " << c.price
+               << ", " << c.qty << ", OrderType::" << type_name(c.order_type) << "),\n";
         }
     }
     return os.str();
@@ -128,32 +131,32 @@ std::size_t ops_target() {
 }
 
 TEST(Differential, EnginesAgreeOnGeneratedStreams) {
-    const std::uint64_t base = seed_base();
-    const std::size_t target = ops_target();
+    const std::uint64_t   base       = seed_base();
+    const std::size_t     target     = ops_target();
     constexpr std::size_t kPerStream = 20'000;
-    const std::size_t streams = std::max<std::size_t>(1, target / kPerStream);
+    const std::size_t     streams    = std::max<std::size_t>(1, target / kPerStream);
 
-    std::printf("differential: %zu streams x %zu ops, seed base %llu\n", streams,
-                kPerStream, static_cast<unsigned long long>(base));
+    std::printf("differential: %zu streams x %zu ops, seed base %llu\n", streams, kPerStream,
+                static_cast<unsigned long long>(base));
 
     for (std::size_t k = 0; k < streams; ++k) {
-        const std::uint64_t seed = base + k;
-        const auto stream = obtest::generate_stream(seed, kPerStream, obtest::GenConfig{});
+        const std::uint64_t seed   = base + k;
+        const auto          stream = obtest::generate_stream(seed, kPerStream, obtest::GenConfig{});
 
-        std::string detail;
+        std::string       detail;
         const std::size_t at = first_divergence(stream, &detail);
         if (at == kNoDivergence) {
             continue;
         }
 
         // Shrink before reporting. An unshrunk failure is not actionable.
-        const auto minimal = obtest::shrink(stream, diverges);
+        const auto  minimal = obtest::shrink(stream, diverges);
         std::string min_detail;
         first_divergence(minimal, &min_detail);
 
         FAIL() << "engines diverged, seed " << seed << ", at event " << at << "\n"
-               << detail << "\n\nshrunk from " << stream.size() << " to "
-               << minimal.size() << " commands:\n"
+               << detail << "\n\nshrunk from " << stream.size() << " to " << minimal.size()
+               << " commands:\n"
                << min_detail << as_cpp(minimal);
     }
 }
@@ -163,14 +166,14 @@ TEST(Differential, EnginesAgreeOnGeneratedStreams) {
 TEST(Differential, EnginesAgreeOnNarrowBooksWithDeepSweeps) {
     obtest::GenConfig cfg;
     cfg.half_width = 3;  // only 7 price levels: everything crosses
-    cfg.max_qty = 500;
+    cfg.max_qty    = 500;
     cfg.cancel_pct = 15;
 
     for (std::uint64_t seed = 1; seed <= 20; ++seed) {
-        const auto stream = obtest::generate_stream(seed_base() + seed, 20'000, cfg);
+        const auto  stream = obtest::generate_stream(seed_base() + seed, 20'000, cfg);
         std::string detail;
-        ASSERT_EQ(first_divergence(stream, &detail), kNoDivergence)
-            << "seed " << seed << "\n" << detail;
+        ASSERT_EQ(first_divergence(stream, &detail), kNoDivergence) << "seed " << seed << "\n"
+                                                                    << detail;
     }
 }
 
@@ -181,28 +184,28 @@ TEST(Differential, EnginesAgreeOnCancelHeavyWideBooks) {
     cfg.cancel_pct = 88;
 
     for (std::uint64_t seed = 1; seed <= 20; ++seed) {
-        const auto stream = obtest::generate_stream(seed_base() + 1000 + seed, 20'000, cfg);
+        const auto  stream = obtest::generate_stream(seed_base() + 1000 + seed, 20'000, cfg);
         std::string detail;
-        ASSERT_EQ(first_divergence(stream, &detail), kNoDivergence)
-            << "seed " << seed << "\n" << detail;
+        ASSERT_EQ(first_divergence(stream, &detail), kNoDivergence) << "seed " << seed << "\n"
+                                                                    << detail;
     }
 }
 
 // Both ladder extremes, where the bitmap's boundary masks are exercised.
 TEST(Differential, EnginesAgreeAtLadderExtremes) {
     obtest::GenConfig low;
-    low.centre = ob::kMinTick + 5;
+    low.centre     = ob::kMinTick + 5;
     low.half_width = 5;
     obtest::GenConfig high;
-    high.centre = ob::kMaxTick - 5;
+    high.centre     = ob::kMaxTick - 5;
     high.half_width = 5;
 
     for (std::uint64_t seed = 1; seed <= 10; ++seed) {
         for (const obtest::GenConfig& cfg : {low, high}) {
-            const auto stream = obtest::generate_stream(seed_base() + 2000 + seed, 10'000, cfg);
+            const auto  stream = obtest::generate_stream(seed_base() + 2000 + seed, 10'000, cfg);
             std::string detail;
-            ASSERT_EQ(first_divergence(stream, &detail), kNoDivergence)
-                << "seed " << seed << "\n" << detail;
+            ASSERT_EQ(first_divergence(stream, &detail), kNoDivergence) << "seed " << seed << "\n"
+                                                                        << detail;
         }
     }
 }
@@ -210,7 +213,7 @@ TEST(Differential, EnginesAgreeAtLadderExtremes) {
 // The shrinker has to work for the above failures to be actionable.
 TEST(Differential, ShrinkerReducesAnInjectedDivergence) {
     const auto stream = obtest::generate_stream(77, 5000, obtest::GenConfig{});
-    const auto pred = [](const std::vector<ob::Command>& s) {
+    const auto pred   = [](const std::vector<ob::Command>& s) {
         for (const ob::Command& c : s) {
             if (c.type == ob::CommandType::Cancel) {
                 return true;

@@ -1,10 +1,9 @@
-#include <ob/price_ladder.hpp>
-
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <deque>
 #include <map>
+#include <ob/price_ladder.hpp>
 #include <random>
 #include <vector>
 
@@ -20,10 +19,10 @@ using ob::Ticks;
 Slot make(OrderPool& pool, ob::OrderId id, Ticks px, ob::Qty qty, Side side) {
     const Slot s = pool.alloc();
     ob::Order& o = pool.at(s);
-    o.id = id;
-    o.price = px;
-    o.remaining = qty;
-    o.side = side;
+    o.id         = id;
+    o.price      = px;
+    o.remaining  = qty;
+    o.side       = side;
     return s;
 }
 
@@ -40,11 +39,11 @@ TEST(PriceLadder, StartsEmpty) {
 }
 
 TEST(PriceLadder, PushBackEstablishesFifoOrder) {
-    OrderPool pool(16);
+    OrderPool               pool(16);
     PriceLadder<Side::Sell> l;
-    const Slot a = make(pool, 1, 10000, 10, Side::Sell);
-    const Slot b = make(pool, 2, 10000, 20, Side::Sell);
-    const Slot c = make(pool, 3, 10000, 30, Side::Sell);
+    const Slot              a = make(pool, 1, 10000, 10, Side::Sell);
+    const Slot              b = make(pool, 2, 10000, 20, Side::Sell);
+    const Slot              c = make(pool, 3, 10000, 30, Side::Sell);
     l.push_back(10000, a, pool);
     l.push_back(10000, b, pool);
     l.push_back(10000, c, pool);
@@ -62,8 +61,8 @@ TEST(PriceLadder, PushBackEstablishesFifoOrder) {
 }
 
 TEST(PriceLadder, BestIsTheHighestPriceForBidsAndLowestForAsks) {
-    OrderPool pool(16);
-    PriceLadder<Side::Buy> bids;
+    OrderPool               pool(16);
+    PriceLadder<Side::Buy>  bids;
     PriceLadder<Side::Sell> asks;
 
     bids.push_back(10000, make(pool, 1, 10000, 10, Side::Buy), pool);
@@ -78,7 +77,7 @@ TEST(PriceLadder, BestIsTheHighestPriceForBidsAndLowestForAsks) {
 }
 
 TEST(PriceLadder, BothLadderExtremesWork) {
-    OrderPool pool(8);
+    OrderPool              pool(8);
     PriceLadder<Side::Buy> bids;
     bids.push_back(ob::kMinTick, make(pool, 1, ob::kMinTick, 1, Side::Buy), pool);
     EXPECT_EQ(bids.best(), ob::kMinTick);
@@ -88,9 +87,9 @@ TEST(PriceLadder, BothLadderExtremesWork) {
 
 TEST(PriceLadder, UnlinkFromHeadMiddleAndTailKeepsTheRestIntact) {
     for (int victim = 0; victim < 3; ++victim) {
-        OrderPool pool(16);
+        OrderPool               pool(16);
         PriceLadder<Side::Sell> l;
-        Slot s[3];
+        Slot                    s[3];
         for (int i = 0; i < 3; ++i) {
             s[i] = make(pool, static_cast<ob::OrderId>(i + 1), 10000, 10, Side::Sell);
             l.push_back(10000, s[i], pool);
@@ -116,10 +115,10 @@ TEST(PriceLadder, UnlinkFromHeadMiddleAndTailKeepsTheRestIntact) {
 }
 
 TEST(PriceLadder, EmptyingALevelClearsItAndMovesBest) {
-    OrderPool pool(16);
+    OrderPool              pool(16);
     PriceLadder<Side::Buy> l;
-    const Slot hi = make(pool, 1, 10010, 10, Side::Buy);
-    const Slot lo = make(pool, 2, 10000, 10, Side::Buy);
+    const Slot             hi = make(pool, 1, 10010, 10, Side::Buy);
+    const Slot             lo = make(pool, 2, 10000, 10, Side::Buy);
     l.push_back(10010, hi, pool);
     l.push_back(10000, lo, pool);
     ASSERT_EQ(l.best(), 10010);
@@ -137,9 +136,9 @@ TEST(PriceLadder, EmptyingALevelClearsItAndMovesBest) {
 }
 
 TEST(PriceLadder, ReduceAdjustsTheLevelTotalForAPartialFill) {
-    OrderPool pool(8);
+    OrderPool               pool(8);
     PriceLadder<Side::Sell> l;
-    const Slot s = make(pool, 1, 10000, 100, Side::Sell);
+    const Slot              s = make(pool, 1, 10000, 100, Side::Sell);
     l.push_back(10000, s, pool);
 
     pool.at(s).remaining -= 30;
@@ -152,9 +151,9 @@ TEST(PriceLadder, ReduceAdjustsTheLevelTotalForAPartialFill) {
 // The API hazard made explicit: unlink subtracts the order's CURRENT remaining,
 // so it must be called before remaining is zeroed.
 TEST(PriceLadder, UnlinkMustBeCalledBeforeZeroingRemaining) {
-    OrderPool pool(8);
+    OrderPool               pool(8);
     PriceLadder<Side::Sell> l;
-    const Slot s = make(pool, 1, 10000, 100, Side::Sell);
+    const Slot              s = make(pool, 1, 10000, 100, Side::Sell);
     l.push_back(10000, s, pool);
     ASSERT_EQ(l.level(10000).total, 100u);
 
@@ -163,7 +162,7 @@ TEST(PriceLadder, UnlinkMustBeCalledBeforeZeroingRemaining) {
 }
 
 TEST(PriceLadder, ForEachVisitsLevelsBestToWorstAndFifoWithin) {
-    OrderPool pool(32);
+    OrderPool              pool(32);
     PriceLadder<Side::Buy> l;
     // Deliberately inserted out of price order.
     l.push_back(10000, make(pool, 1, 10000, 10, Side::Buy), pool);
@@ -172,7 +171,7 @@ TEST(PriceLadder, ForEachVisitsLevelsBestToWorstAndFifoWithin) {
     l.push_back(10010, make(pool, 4, 10010, 10, Side::Buy), pool);
 
     std::vector<ob::OrderId> ids;
-    std::vector<Ticks> prices;
+    std::vector<Ticks>       prices;
     l.for_each(pool, [&](Ticks px, const ob::Order& o) {
         prices.push_back(px);
         ids.push_back(o.id);
@@ -183,7 +182,7 @@ TEST(PriceLadder, ForEachVisitsLevelsBestToWorstAndFifoWithin) {
 }
 
 TEST(PriceLadder, ForEachLevelCanStopEarly) {
-    OrderPool pool(32);
+    OrderPool               pool(32);
     PriceLadder<Side::Sell> l;
     for (Ticks px = 10000; px < 10005; ++px) {
         l.push_back(px, make(pool, static_cast<ob::OrderId>(px), px, 10, Side::Sell), pool);
@@ -197,7 +196,7 @@ TEST(PriceLadder, ForEachLevelCanStopEarly) {
 }
 
 TEST(PriceLadder, ResetEmptiesEverything) {
-    OrderPool pool(8);
+    OrderPool              pool(8);
     PriceLadder<Side::Buy> l;
     l.push_back(10000, make(pool, 1, 10000, 10, Side::Buy), pool);
     l.reset();
@@ -210,24 +209,24 @@ TEST(PriceLadder, ResetEmptiesEverything) {
 // arrangement, which randomization finds and hand-written cases do not.
 TEST(PriceLadder, MatchesAMapOfDequesUnderRandomPushAndUnlink) {
     for (std::uint64_t seed = 1; seed <= 15; ++seed) {
-        OrderPool pool(4096);
-        PriceLadder<Side::Sell> l;
-        std::map<Ticks, std::deque<ob::OrderId>> model;
-        std::mt19937_64 rng(seed);
+        OrderPool                                         pool(4096);
+        PriceLadder<Side::Sell>                           l;
+        std::map<Ticks, std::deque<ob::OrderId>>          model;
+        std::mt19937_64                                   rng(seed);
         std::vector<std::tuple<Ticks, Slot, ob::OrderId>> live;
-        ob::OrderId next_id = 1;
+        ob::OrderId                                       next_id = 1;
 
         for (int op = 0; op < 3000; ++op) {
             const bool do_push = live.empty() || (rng() % 3 != 0);
             if (do_push && pool.size() < pool.capacity()) {
-                const Ticks px = 9950 + static_cast<Ticks>(rng() % 101);
+                const Ticks       px = 9950 + static_cast<Ticks>(rng() % 101);
                 const ob::OrderId id = next_id++;
-                const Slot s = make(pool, id, px, 10, Side::Sell);
+                const Slot        s  = make(pool, id, px, 10, Side::Sell);
                 l.push_back(px, s, pool);
                 model[px].push_back(id);
                 live.emplace_back(px, s, id);
             } else if (!live.empty()) {
-                const std::size_t k = static_cast<std::size_t>(rng() % live.size());
+                const std::size_t k    = static_cast<std::size_t>(rng() % live.size());
                 const auto [px, s, id] = live[k];
                 live.erase(live.begin() + static_cast<std::ptrdiff_t>(k));
                 EXPECT_EQ(l.unlink(px, s, pool), 10u);

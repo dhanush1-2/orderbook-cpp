@@ -18,6 +18,7 @@ add_executable(ob_tests
     test_price_ladder.cpp
     test_fast_engine.cpp
     test_differential.cpp
+    test_scenarios.cpp
     test_histogram.cpp
     test_order_pool.cpp
     test_id_index.cpp
@@ -25,12 +26,14 @@ add_executable(ob_tests
     test_price_ladder.cpp
     test_fast_engine.cpp
     test_differential.cpp
+    test_scenarios.cpp
     test_order_pool.cpp
     test_id_index.cpp
     test_level_bitmap.cpp
     test_price_ladder.cpp
     test_fast_engine.cpp
     test_differential.cpp
+    test_scenarios.cpp
     test_types.cpp
     test_command_events.cpp
     test_event_buffer.cpp

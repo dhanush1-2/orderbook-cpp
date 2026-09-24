@@ -11,13 +11,12 @@
 // Any divergence is a bug, and differential testing is what finds it: generated
 // streams compared event-for-event, not inspection.
 
+#include <algorithm>
+#include <cassert>
 #include <ob/engine_concept.hpp>
 #include <ob/id_index.hpp>
 #include <ob/invariants.hpp>
 #include <ob/price_ladder.hpp>
-
-#include <algorithm>
-#include <cassert>
 
 namespace ob {
 
@@ -159,7 +158,7 @@ private:
     // differential test is what establishes that.
     template <Side OppSide>
     [[nodiscard]] QtySum fillable_qty(const PriceLadder<OppSide>& book,
-                                      const Command& c) const noexcept {
+                                      const Command&              c) const noexcept {
         QtySum total = 0;
         book.for_each_level([&](Ticks px, const PriceLevel& lv) {
             if (c.order_type != OrderType::Market && !crosses(c.side, c.price, px)) {
@@ -278,17 +277,18 @@ private:
 
             case OrderType::Market:
             case OrderType::Ioc: {
-                Event e  = base(EventType::Cancelled, c.id);
-                e.cancel = (remaining == c.qty) ? CancelReason::NoLiquidity
-                                                : CancelReason::IocRemainder;
-                e.qty    = remaining;
+                Event e = base(EventType::Cancelled, c.id);
+                e.cancel =
+                    (remaining == c.qty) ? CancelReason::NoLiquidity : CancelReason::IocRemainder;
+                e.qty = remaining;
                 out.push(e);
                 return;
             }
 
             case OrderType::Fok:
-                assert(false && "Fok reached the remainder branch: the pre-scan "
-                                "disagreed with the match loop");
+                assert(false &&
+                       "Fok reached the remainder branch: the pre-scan "
+                       "disagreed with the match loop");
                 return;
         }
     }
@@ -332,8 +332,9 @@ private:
             Slot          cur    = lv.head;
             while (cur != kInvalidSlot) {
                 if (walked > lv.count) {
-                    result = {false, "level FIFO list is longer than its count, "
-                                     "which means it has a cycle"};
+                    result = {false,
+                              "level FIFO list is longer than its count, "
+                              "which means it has a cycle"};
                     return false;
                 }
                 const Order& o = pool_.at(cur);
