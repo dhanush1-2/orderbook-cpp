@@ -1,0 +1,240 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 550  of event 'cpu-clock'
+# Event count (approx.): 550550550
+#
+# Overhead  Command          Shared Object         Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+# ........  ...............  ....................  ........................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    34.91%  ob_bench_throug  ob_bench_throughput   [.] ob::FastEngine::submit_new(ob::Command const&, ob::EventBuffer&)
+            |
+            ---ob::FastEngine::submit_new(ob::Command const&, ob::EventBuffer&)
+               |          
+               |--30.00%--void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               |          main
+               |          0xffffa81125c4
+               |          0
+               |          
+               |--3.82%--ob::bench::RestingSet::apply(ob::Command const&)
+               |          ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+               |          void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               |          main
+               |          0xffffa81125c4
+               |          0
+               |          
+                --0.55%--main
+                          0xffffa81125c4
+                          0
+
+    13.27%  ob_bench_throug  ob_bench_throughput   [.] void ob::FastEngine::match_into<(ob::Side)1>(ob::PriceLadder<(ob::Side)1>&, ob::Command const&, unsigned int&, ob::EventBuffer&)
+            |
+            ---void ob::FastEngine::match_into<(ob::Side)1>(ob::PriceLadder<(ob::Side)1>&, ob::Command const&, unsigned int&, ob::EventBuffer&)
+               ob::FastEngine::submit_new(ob::Command const&, ob::EventBuffer&)
+               |          
+               |--11.82%--void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               |          main
+               |          0xffffa81125c4
+               |          0
+               |          
+                --1.09%--ob::bench::RestingSet::apply(ob::Command const&)
+                          ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+                          void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+                          main
+                          0xffffa81125c4
+                          0
+
+     9.64%  ob_bench_throug  ob_bench_throughput   [.] ob::FastEngine::submit(ob::Command const&, ob::EventBuffer&)
+            |
+            ---ob::FastEngine::submit(ob::Command const&, ob::EventBuffer&)
+               |          
+               |--5.27%--ob::bench::RestingSet::apply(ob::Command const&)
+               |          ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+               |          void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               |          main
+               |          0xffffa81125c4
+               |          0
+               |          
+                --4.36%--void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+                          main
+                          0xffffa81125c4
+                          0
+
+     5.64%  ob_bench_throug  ob_bench_throughput   [.] ob::bench::RestingSet::apply(ob::Command const&)
+            |
+            ---ob::bench::RestingSet::apply(ob::Command const&)
+               |          
+               |--5.09%--ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+               |          void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               |          main
+               |          0xffffa81125c4
+               |          0
+               |          
+                --0.55%--void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+                          main
+                          0xffffa81125c4
+                          0
+
+     5.64%  ob_bench_throug  ob_bench_throughput   [.] void ob::FastEngine::match_into<(ob::Side)0>(ob::PriceLadder<(ob::Side)0>&, ob::Command const&, unsigned int&, ob::EventBuffer&)
+            |
+            ---void ob::FastEngine::match_into<(ob::Side)0>(ob::PriceLadder<(ob::Side)0>&, ob::Command const&, unsigned int&, ob::EventBuffer&)
+               ob::FastEngine::submit_new(ob::Command const&, ob::EventBuffer&)
+               |          
+                --5.09%--void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+                          main
+                          0xffffa81125c4
+                          0
+
+     5.27%  ob_bench_throug  ob_bench_throughput   [.] ob::FastEngine::FastEngine(ob::FastEngine::Config)
+            |
+            ---ob::FastEngine::FastEngine(ob::FastEngine::Config)
+               |          
+               |--2.00%--ob::bench::measure_workload(std::vector<ob::Command, std::allocator<ob::Command> > const&)
+               |          void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               |          main
+               |          0xffffa81125c4
+               |          0
+               |          
+               |--2.00%--void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               |          main
+               |          0xffffa81125c4
+               |          0
+               |          
+                --1.27%--ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+                          void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+                          main
+                          0xffffa81125c4
+                          0
+
+     4.73%  ob_bench_throug  ob_bench_throughput   [.] std::__detail::_Map_base<unsigned long, std::pair<unsigned long const, unsigned long>, std::allocator<std::pair<unsigned long const, unsigned long> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](unsigned long const&)
+            |
+            ---std::__detail::_Map_base<unsigned long, std::pair<unsigned long const, unsigned long>, std::allocator<std::pair<unsigned long const, unsigned long> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](unsigned long const&)
+               ob::bench::RestingSet::apply(ob::Command const&)
+               ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+               void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               main
+               0xffffa81125c4
+               0
+
+     4.18%  ob_bench_throug  ob_bench_throughput   [.] ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+            |
+            ---ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+               void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               main
+               0xffffa81125c4
+               0
+
+     3.27%  ob_bench_throug  ob_bench_throughput   [.] ob::Command& std::vector<ob::Command, std::allocator<ob::Command> >::emplace_back<ob::Command>(ob::Command&&) [clone .isra.0]
+            |
+            ---ob::Command& std::vector<ob::Command, std::allocator<ob::Command> >::emplace_back<ob::Command>(ob::Command&&) [clone .isra.0]
+               ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+               void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               main
+               0xffffa81125c4
+               0
+
+     2.55%  ob_bench_throug  ob_bench_throughput   [.] std::_Hashtable<unsigned long, std::pair<unsigned long const, unsigned long>, std::allocator<std::pair<unsigned long const, unsigned long> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::find(unsigned long const&) [clone .isra.0]
+            |
+            ---std::_Hashtable<unsigned long, std::pair<unsigned long const, unsigned long>, std::allocator<std::pair<unsigned long const, unsigned long> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::find(unsigned long const&) [clone .isra.0]
+               ob::bench::RestingSet::apply(ob::Command const&)
+               ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+               void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               main
+               0xffffa81125c4
+               0
+
+     1.27%  ob_bench_throug  [kernel.kallsyms]     [k] __pi_clear_page
+            |
+            ---__pi_clear_page
+               do_huge_pmd_anonymous_page
+               __handle_mm_fault
+               handle_mm_fault
+               do_page_fault
+               do_translation_fault
+               do_mem_abort
+               el0_da
+               el0t_64_sync_handler
+               el0t_64_sync
+               |          
+                --0.91%--ob::FastEngine::FastEngine(ob::FastEngine::Config)
+                          |          
+                           --0.55%--ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+                                     void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+                                     main
+                                     0xffffa81125c4
+                                     0
+
+     1.09%  ob_bench_throug  [kernel.kallsyms]     [k] el0_da
+            |
+            ---el0_da
+               el0t_64_sync_handler
+               el0t_64_sync
+               |          
+                --0.91%--ob::FastEngine::FastEngine(ob::FastEngine::Config)
+
+     0.73%  ob_bench_throug  ob_bench_throughput   [.] void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+            |
+            ---void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               main
+               0xffffa81125c4
+               0
+
+     0.55%  ob_bench_throug  ob_bench_throughput   [.] ob::bench::Clock::measure_resolution(unsigned long&, unsigned long&)
+            |
+            ---ob::bench::Clock::measure_resolution(unsigned long&, unsigned long&)
+               ob::bench::Clock::instance()
+               main
+               0xffffa81125c4
+               0
+
+     0.55%  ob_bench_throug  ob_bench_throughput   [.] ob::bench::measure_workload(std::vector<ob::Command, std::allocator<ob::Command> > const&)
+            |
+            ---ob::bench::measure_workload(std::vector<ob::Command, std::allocator<ob::Command> > const&)
+               void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               main
+               0xffffa81125c4
+               0
+
+     0.55%  ob_bench_throug  ob_bench_throughput   [.] std::vector<ob::Command, std::allocator<ob::Command> >::push_back(ob::Command const&)
+            |
+            ---std::vector<ob::Command, std::allocator<ob::Command> >::push_back(ob::Command const&)
+               ob::bench::build(ob::bench::Scenario, unsigned long, unsigned long)
+               void (anonymous namespace)::run<ob::FastEngine>(ob::bench::Scenario, unsigned long, unsigned long, bool) [clone .constprop.0]
+               main
+               0xffffa81125c4
+               0
+
+     0.36%  ob_bench_throug  [kernel.kallsyms]     [k] clear_huge_page
+     0.36%  ob_bench_throug  [kernel.kallsyms]     [k] percpu_counter_add_batch
+     0.36%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x00000000000295b4
+     0.36%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x000000000002a5f0
+     0.36%  ob_bench_throug  ob_bench_throughput   [.] __aarch64_ldadd8_relax
+     0.36%  ob_bench_throug  ob_bench_throughput   [.] free@plt
+     0.36%  ob_bench_throug  ob_bench_throughput   [.] ob::bench::Clock::instance()
+     0.18%  ob_bench_throug  [kernel.kallsyms]     [k] __handle_mm_fault
+     0.18%  ob_bench_throug  [kernel.kallsyms]     [k] __rmqueue_pcplist
+     0.18%  ob_bench_throug  [kernel.kallsyms]     [k] page_counter_try_charge
+     0.18%  ob_bench_throug  [kernel.kallsyms]     [k] percpu_ref_put_many.constprop.0
+     0.18%  ob_bench_throug  [kernel.kallsyms]     [k] perf_iterate_ctx
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x00000000000291d0
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x00000000000295c4
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x0000000000029654
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x0000000000029ac8
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x0000000000029b30
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x0000000000029cf0
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x000000000002a324
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x000000000002a354
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x000000000002a3f0
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x000000000002a454
+     0.18%  ob_bench_throug  ld-musl-aarch64.so.1  [.] 0x000000000002a66c
+     0.18%  ob_bench_throug  libstdc++.so.6.0.32   [.] std::__detail::_Prime_rehash_policy::_M_need_rehash(unsigned long, unsigned long, unsigned long) const
+     0.18%  ob_bench_throug  ob_bench_throughput   [.] ob::FastEngine::fok_is_fillable(ob::Command const&) const
+     0.18%  ob_bench_throug  ob_bench_throughput   [.] operator new(unsigned long)
+     0.18%  ob_bench_throug  ob_bench_throughput   [.] std::_Hashtable<unsigned long, std::pair<unsigned long const, unsigned long>, std::allocator<std::pair<unsigned long const, unsigned long> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_rehash(unsigned long, unsigned long const&)
+
+
+#
+# (Cannot load tips.txt file, install linux-tools-doc to see tips!)
+#

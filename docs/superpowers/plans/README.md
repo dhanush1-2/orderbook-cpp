@@ -59,12 +59,17 @@ Copied verbatim from the spec. Every task's requirements implicitly include thes
 
 ## Status
 
-| Phase | Written | Tasks | TDD steps | Executed |
-|---|---|---|---|---|
-| 1. Foundation and correctness oracle | Yes | 13 | 77 | No |
-| 2. Fast engine and measurement | Yes | 15 | 85 | No |
-| 3. Market data and live demo | Not yet | — | — | No |
-| 4. Wire protocol and ingest (optional) | Not yet | — | — | No |
+| Phase | Written | Tasks | Executed |
+|---|---|---|---|
+| 1. Foundation and correctness oracle | Yes | 13 | **Complete**, merged to main |
+| 2. Fast engine and measurement | Yes | 15 | **14 of 15 complete**, merged to main. Task 14 (the optimization arc) has its baseline recorded and five motivated candidates documented, but no iterations run |
+| 3. Market data and live demo | Not yet | — | Not started |
+| 4. Wire protocol and ingest (optional) | Not yet | — | Not started |
+
+**Current state on main:** 188 tests passing, all 40 spec edge cases against both
+engines, 10^7 differential operations with zero divergence, 73,977 fuzz units with
+zero crashes, clean under ASan and UBSan, 28.9 ns per operation and 33.0 M ops/s on
+the realistic workload with zero allocations asserted.
 
 Phase 2 additionally carries a pre-verification note: `LevelBitmap` and `IdIndex`
 were compiled and tested against reference models, under ASan and UBSan, before the
