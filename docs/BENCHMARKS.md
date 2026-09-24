@@ -17,6 +17,11 @@ single operation**, so:
 - **`engine ns/op` comes from a batched loop with no per-operation timestamping.**
   It is quantization-free and it is the figure to trust.
 - **The percentiles come from per-operation timestamps** and carry the 42 ns floor.
+  50-73% of samples land below it, so **every scenario's p50 is flagged as
+  quantization rather than signal**, and the overhead-corrected values are clamped at
+  zero. An earlier version printed `p50 = -16 ns`, which is what subtracting the
+  clock's own 16.6 ns overhead from a zero-tick delta produces. A negative latency is
+  not a measurement.
   They are reported for the *shape* of the tail, which is what matters in this
   domain, not for their absolute p50. The harness counts what fraction of samples
   fall below the floor and flags a median that does.

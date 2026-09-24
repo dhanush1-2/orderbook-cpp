@@ -12,6 +12,28 @@ optimization arc including the candidate that was measured and rejected. A live
 terminal depth ladder renders from replayed flow without being able to slow the
 matching thread.
 
+## Quickstart
+
+```bash
+brew install cmake ninja                       # macOS; skip if already present
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+      -DOB_BUILD_BENCH=ON -DOB_BUILD_TOOLS=ON
+cmake --build build
+ctest --test-dir build                         # 209 tests, ~4 s
+```
+
+Then any of:
+
+```bash
+./build/bench/ob_bench_throughput --ops 2000000        # ops/sec per scenario
+./build/bench/ob_bench_latency    --ops 500000         # latency distribution
+./build/tools/ob_replay --scenario mixed_realistic --ops 200000 --rate 5000 --tui
+```
+
+`ctest` is the one command that checks everything: unit tests, the 40-case
+edge-case table against both engines, invariants over random streams, cross-build
+determinism, the seqlock under contention, and the zero-allocation assertion.
+
 ## What it does
 
 - Five order types: `Limit`, `Market`, `Ioc`, `Fok`, `PostOnly`, plus `Cancel`

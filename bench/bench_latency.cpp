@@ -137,7 +137,17 @@ void run_scenario(Scenario sc, const Options& opt) {
     const double batched_ns = clean_batched_ns;
 
     const double oh = clk.overhead_ns_serialized();
-    const auto   ns = [&](std::uint32_t ticks) { return clk.ticks_to_ns(ticks) - oh; };
+    // Clamped at zero. When an operation completes inside a single clock tick the
+    // raw delta is 0, and subtracting the clock's own overhead drives the corrected
+    // value negative. A negative latency is not a measurement, it is an artifact of
+    // measuring something faster than the clock can resolve, and printing it would
+    // be worse than useless. The p50_below_clock_resolution flag and the
+    // frac_below_clock_resolution figure are what tell the reader the low
+    // percentiles are quantization rather than signal.
+    const auto ns = [&](std::uint32_t ticks) {
+        const double v = clk.ticks_to_ns(ticks) - oh;
+        return v > 0.0 ? v : 0.0;
+    };
 
     // A percentile below the clock's own resolution is measuring quantization, not
     // the engine. Rather than print it as though it meant something, count how many
