@@ -16,6 +16,7 @@ add_executable(ob_tests
     test_reference_validation.cpp
     test_reference_resting.cpp
     test_reference_matching.cpp
+    test_reference_cancel.cpp
 )
 target_link_libraries(ob_tests PRIVATE ob GTest::gtest_main)
 

@@ -208,14 +208,43 @@ private:
         }
     }
 
+    // Removes `id` from `book` at `px`. Returns the quantity that was removed.
+    template <class BookMap>
+    Qty erase_order(BookMap& book, Ticks px, OrderId id) {
+        const auto lit = book.find(px);
+        assert(lit != book.end() && "live_ pointed at a level that does not exist");
+        Level& level = lit->second;
+
+        const auto oit = std::find_if(level.begin(), level.end(),
+                                      [id](const RefOrder& o) { return o.id == id; });
+        assert(oit != level.end() && "live_ pointed at an order that is not in its level");
+
+        const Qty removed = oit->remaining;
+        level.erase(oit);
+        if (level.empty()) {
+            book.erase(lit);
+        }
+        return removed;
+    }
+
     void submit_cancel(const Command& c, EventBuffer& out) {
         const auto it = live_.find(c.id);
         if (it == live_.end()) {
+            // Covers an id that never existed (E18), one already fully filled
+            // (E19) and one already cancelled (E20). Deliberately not idempotent.
             emit_rejected(out, c.id, RejectReason::UnknownOrderId);
             return;
         }
-        // Removal arrives in Task 8.
-        emit_rejected(out, c.id, RejectReason::UnknownOrderId);
+        const Loc loc = it->second;
+        const Qty removed = (loc.side == Side::Buy) ? erase_order(bids_, loc.price, c.id)
+                                                   : erase_order(asks_, loc.price, c.id);
+        live_.erase(it);
+
+        Event e = base(EventType::Cancelled, c.id);
+        e.cancel = CancelReason::UserRequested;
+        e.qty = removed;
+        e.price = loc.price;
+        out.push(e);
     }
 
     BidBook bids_;
