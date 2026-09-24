@@ -137,17 +137,22 @@ private:
 
     // Distribution of the nonzero difference between two consecutive reads.
     //
-    // Reports BOTH the minimum and the median, because they disagree materially on
-    // this hardware (~17 ns versus ~42 ns) and the minimum is an outlier-sensitive
-    // statistic. A harness that quoted its own resolution as the minimum would
-    // understate its error bars by more than 2x, which is precisely the kind of
-    // flattering-yourself mistake the methodology document exists to prevent.
+    // Uses raw_serialized(), NOT raw(). Measuring with the unserialized read is
+    // unsound: two bare `mrs` instructions can complete out of order relative to
+    // each other, so the delta does not reflect elapsed time. That produced a
+    // resolution that swung between 1 ns and 42 ns across runs of the same binary.
+    // The measurement must use the same read the harness will use for timing.
+    //
+    // Reports BOTH the minimum and the median. The minimum is outlier-sensitive and
+    // therefore optimistic; the median is what gets published. A harness quoting its
+    // own resolution as the minimum would understate its error bars, which is
+    // precisely the flattering-yourself mistake the methodology doc exists to stop.
     static void measure_resolution(std::uint64_t& out_min, std::uint64_t& out_median) {
         std::vector<std::uint64_t> deltas;
         deltas.reserve(200000);
         for (int i = 0; i < 200000; ++i) {
-            const std::uint64_t a = raw();
-            const std::uint64_t b = raw();
+            const std::uint64_t a = raw_serialized();
+            const std::uint64_t b = raw_serialized();
             if (b > a) {
                 deltas.push_back(b - a);
             }
