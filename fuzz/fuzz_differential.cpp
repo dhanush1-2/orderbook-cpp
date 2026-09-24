@@ -8,14 +8,13 @@
 // engine must REJECT is the point, because that is where the flat ladder's bounds
 // checking lives.
 
-#include <ob/fast_engine.hpp>
-#include <ob/invariants.hpp>
-#include <ob/reference_engine.hpp>
-
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ob/fast_engine.hpp>
+#include <ob/invariants.hpp>
+#include <ob/reference_engine.hpp>
 #include <vector>
 
 namespace {
@@ -53,12 +52,12 @@ bool decode(const std::uint8_t* data, std::size_t size, std::size_t i, ob::Comma
 
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
     constexpr std::size_t kCapacity = 4096;
-    ob::ReferenceEngine ref(kCapacity);
-    ob::FastEngine fast(ob::FastEngine::Config{kCapacity});
+    ob::ReferenceEngine   ref(kCapacity);
+    ob::FastEngine        fast(ob::FastEngine::Config{kCapacity});
 
     std::vector<ob::Event> rs(1 << 16), fs(1 << 16);
-    ob::EventBuffer rb(rs.data(), rs.size());
-    ob::EventBuffer fb(fs.data(), fs.size());
+    ob::EventBuffer        rb(rs.data(), rs.size());
+    ob::EventBuffer        fb(fs.data(), fs.size());
 
     const std::size_t n = size / kBytesPerCommand;
     for (std::size_t i = 0; i < n; ++i) {
