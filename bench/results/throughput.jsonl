@@ -1,0 +1,6 @@
+{"scenario":"rest_only","engine":"fast","ops":2000000,"seconds":0.033668,"ops_per_sec":59403269,"events_per_sec":59403269,"ns_per_op":16.83,"allocations":0}
+{"scenario":"cross_shallow","engine":"fast","ops":2000000,"seconds":0.043372,"ops_per_sec":46113166,"events_per_sec":115282915,"ns_per_op":21.69,"allocations":0}
+{"scenario":"cross_deep","engine":"fast","ops":2000000,"seconds":0.066033,"ops_per_sec":30288068,"events_per_sec":65964201,"ns_per_op":33.02,"allocations":0}
+{"scenario":"cancel_heavy","engine":"fast","ops":2000000,"seconds":0.037627,"ops_per_sec":53153430,"events_per_sec":53153430,"ns_per_op":18.81,"allocations":0}
+{"scenario":"mixed_realistic","engine":"fast","ops":2000000,"seconds":0.060658,"ops_per_sec":32971501,"events_per_sec":51033999,"ns_per_op":30.33,"allocations":0}
+{"scenario":"worst_case_sweep","engine":"fast","ops":2000000,"seconds":0.056775,"ops_per_sec":35226899,"events_per_sec":105585355,"ns_per_op":28.39,"allocations":0}

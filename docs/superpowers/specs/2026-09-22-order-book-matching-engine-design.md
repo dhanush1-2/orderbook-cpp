@@ -724,12 +724,27 @@ always reported per scenario, never as one number.
 | `rest_only` | 100% non-crossing limits | Insert path and ladder/bitmap writes |
 | `cross_shallow` | Every order crosses exactly one resting order | The common real case |
 | `cross_deep` | Orders sweep 10 to 50 levels | Level traversal and bitmap advance |
-| `cancel_heavy` | 90% cancels, 10% new | The realistic ratio; isolates `IdIndex` and unlink |
-| `mixed_realistic` | Power-law depth, ~10:1 cancel:trade, all five order types | The headline number |
+| `cancel_heavy` | Cancels whenever anything rests, which saturates at **50% of commands** | Isolates `IdIndex` and unlink. See the ceiling note below |
+| `mixed_realistic` | Geometric depth, ~30% cancels, all five order types | The headline number |
 | `worst_case_sweep` | One order consuming the entire populated book | Tail behavior and the true worst case |
 
 Each is generated from a seeded `xoshiro256**` so a scenario is reproducible from an
 integer, and the seed is printed with every result.
+
+**Correction found during implementation: a 90% cancel *rate* is arithmetically
+impossible.** Every cancel consumes one resting order and every new order creates at
+most one, so `cancels <= rests <= creates`, and the cancel share of *commands*
+cannot exceed 50%. An earlier draft of this table specified "90% cancels, 10% new",
+which no generator could produce. The ~90:10 figure real venues quote is cancels per
+**trade**, not per message. `cancel_heavy` therefore targets the 50% ceiling with a
+zero unknown-cancel rate, and there is a test asserting both.
+
+**A second correction:** the generators for `cancel_heavy` and `mixed_realistic` run
+a shadow engine while generating, so a cancel only ever targets an order that
+actually rests. Assuming every `Limit` rests is wrong whenever one fully fills on
+arrival, and it made 11% of `mixed_realistic`'s commands cancels against orders that
+never existed - measuring the rejection path instead of the cancel path. The
+workload counters are what caught it.
 
 ### 8.3 Known measurement errors and how each is handled
 
@@ -808,7 +823,8 @@ Option D: sorted flat vector of occupied levels, binary search
 
 Option B is chosen because the workload is known: prices cluster tightly around the
 touch, most activity is at or near the best price, and the cancel-to-trade ratio is
-roughly 10:1. That workload rewards contiguity and O(1) best-price access, and
+roughly 10:1 in cancels per trade. That workload rewards contiguity and O(1)
+best-price access, and
 punishes pointer chasing and mid-container inserts.
 
 ### 9.2 Handling the fixed price range

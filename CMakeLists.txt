@@ -44,6 +44,14 @@ if(OB_ENABLE_INVARIANTS)
     target_compile_definitions(ob INTERFACE OB_ENABLE_INVARIANTS=1)
 endif()
 
+if(OB_BUILD_FUZZ)
+    add_subdirectory(fuzz)
+endif()
+
+if(OB_BUILD_BENCH)
+    add_subdirectory(bench)
+endif()
+
 if(OB_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

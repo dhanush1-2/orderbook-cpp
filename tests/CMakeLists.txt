@@ -10,6 +10,30 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(ob_tests
     test_smoke.cpp
+    test_clock.cpp
+    test_histogram.cpp
+    test_order_pool.cpp
+    test_id_index.cpp
+    test_level_bitmap.cpp
+    test_price_ladder.cpp
+    test_fast_engine.cpp
+    test_differential.cpp
+    test_scenarios.cpp
+    test_histogram.cpp
+    test_order_pool.cpp
+    test_id_index.cpp
+    test_level_bitmap.cpp
+    test_price_ladder.cpp
+    test_fast_engine.cpp
+    test_differential.cpp
+    test_scenarios.cpp
+    test_order_pool.cpp
+    test_id_index.cpp
+    test_level_bitmap.cpp
+    test_price_ladder.cpp
+    test_fast_engine.cpp
+    test_differential.cpp
+    test_scenarios.cpp
     test_types.cpp
     test_command_events.cpp
     test_event_buffer.cpp
@@ -34,3 +58,12 @@ target_include_directories(ob_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 include(GoogleTest)
 gtest_discover_tests(ob_tests)
+
+# Its own binary on purpose: replacing global operator new inside ob_tests would
+# perturb GoogleTest's own allocations and make the assertion meaningless.
+if(OB_BUILD_BENCH)
+    add_executable(ob_test_alloc_counter test_alloc_counter.cpp)
+    target_link_libraries(ob_test_alloc_counter PRIVATE ob ob_alloc_counter)
+    target_compile_options(ob_test_alloc_counter PRIVATE -UNDEBUG)
+    add_test(NAME alloc_counter COMMAND ob_test_alloc_counter)
+endif()

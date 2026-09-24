@@ -4,9 +4,10 @@ A limit order book and matching engine in C++20. Price-time priority, five order
 types, deterministic event output, and a measurement harness built to survive
 someone attacking it.
 
-**Status: Phase 1 complete.** The engine is correct and exhaustively tested. It is
-not yet fast, and it is not yet claimed to be: `ReferenceEngine` uses `std::map`
-and `std::list` on purpose. Phase 2 adds `FastEngine` and the measured results.
+**Status: Phase 2 substantially complete.** `FastEngine` matches at **~29 ns per
+operation / 33 M ops per second** on the realistic workload, agrees with the
+reference engine over 10^7 generated operations plus coverage-guided fuzzing, and is
+gated against regression by deterministic instruction counts.
 
 ## What it does
 
@@ -24,12 +25,15 @@ and `std::list` on purpose. Phase 2 adds `FastEngine` and the measured results.
 
 | Check | Result |
 |---|---|
-| Test count | **99 passing**, 0.75 s |
-| Edge-case table | **40 cases** covering spec E1–E49, run against every engine via one type list |
+| Test count | **188 passing**, 2.2 s |
+| Edge-case table | **40 cases** covering spec E1–E49, run against **both** engines via one type list |
 | Invariants after every operation | 100,000 operations across 25 seeds, clean |
 | Full ladder occupancy | 65,536 levels filled, both extremes, clean |
 | Determinism across optimization levels | `-O0` and `-O3` produce the **identical** event-stream digest `d54a7c38cb35f3e3` over 104,880 events |
-| ASan + UBSan | **Clean**, all 99 tests, 11.5 s |
+| ASan + UBSan | **Clean**, all tests |
+| Differential vs reference | **10,000,000 operations**, zero divergence, 1.4 s |
+| Fuzzing | **73,977 units**, zero crashes |
+| Instruction-count gate | Deterministic to **+0.000%**; 2% threshold |
 
 Five layers, weakest to strongest:
 
@@ -44,23 +48,45 @@ Five layers, weakest to strongest:
 5. **Cross-build determinism**, which catches undefined behaviour that happens to
    be benign at one optimization level
 
-Phase 2 adds a sixth: differential testing of `FastEngine` against
-`ReferenceEngine` over more than 10^7 generated operations, plus libFuzzer.
+6. **Differential testing** of `FastEngine` against `ReferenceEngine`: 10,000,000
+   generated operations comparing event streams *and* book state after every
+   command, across four workload shapes. Zero divergence. On failure the stream is
+   shrunk by delta debugging and printed as compilable C++.
+7. **Coverage-guided fuzzing** with libFuzzer over an unsanitised decoder that
+   feeds arbitrary prices, quantities and non-monotonic IDs: 73,977 units, zero
+   crashes.
 
 ## Performance
 
-Not yet measured. Deliberately blank rather than aspirational.
+Full results, method and caveats: [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
-The methodology is written first, in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md),
-including the awkward parts. Two worth stating here:
+| scenario | engine ns/op | throughput | p99 | p99.9 |
+|---|---|---|---|---|
+| `mixed_realistic` (headline) | **28.9** | **33.0 M ops/s** | 149 ns | 232 ns |
+| `cancel_heavy` | 23.4 | 53.2 M ops/s | 149 ns | 191 ns |
+| `cross_deep` | 30.3 | 30.3 M ops/s | 274 ns | 648 ns |
+| `worst_case_sweep` | 31.8 | 35.2 M ops/s | 149 ns | 3,440 ns |
 
-- The development machine's finest timestamp granularity is **41.67 ns** while the
-  target operation costs a few hundred, so per-operation cost is measured in
-  batches and distributions carry an explicit resolution floor.
-- **No hardware performance counter is accessible** on this machine, in Docker, or
-  on GitHub runners, so cache and branch figures will be Cachegrind *simulations*
-  and will say so. The CI regression gate counts instructions, which two runs of
-  one binary showed to be deterministic to 1 part in 2,000,000.
+**Zero allocations** in every measured window, asserted by a replaced
+`operator new` that fails the run if the counter moves.
+
+Three things stated up front rather than buried:
+
+- **Against the reference implementation the honest speedup is 1.8x to 5.0x.** One
+  scenario shows 185x, but that is a single asymptotic difference in the FOK
+  pre-scan (O(levels) versus O(orders)), not the flat ladder. Attributing it to the
+  data structures would be misleading.
+- **The clock cannot resolve one operation.** Measured timestamp granularity is
+  42.000 ns; the operation costs ~29 ns. Per-operation cost therefore comes from an
+  untimestamped batched loop, and the percentiles carry an explicit floor. The
+  harness counts what fraction of samples fall below it.
+- **The instrument costs more than the thing it measures:** two serialized clock
+  reads are 35-62 ns against a 23-32 ns operation. Both figures are published so
+  the gap is visible.
+
+No number here comes from a hardware performance counter, because none is
+accessible on this hardware, in Docker, or on GitHub runners. Cache and branch
+figures elsewhere are Cachegrind *simulations* and say so.
 
 ## Building
 

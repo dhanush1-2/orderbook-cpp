@@ -26,7 +26,39 @@ Recorded per result, not assumed. The development machine:
 | `mach_absolute_time` | 41.6667 ns/tick (`mach_timebase` numer 125, denom 3) | 1 tick = 41.67 ns | — |
 | `clock_gettime_nsec_np(CLOCK_UPTIME_RAW)` | nanoseconds | 41 ns | 11.52 ns |
 | `CLOCK_MONOTONIC_RAW`, `steady_clock` | nanoseconds | 41 ns | — |
-| `CNTVCT_EL0` | `CNTFRQ_EL0` claims 1 GHz | ~42 (the 1 GHz is fiction) | 0.32 ns amortized |
+| `CNTVCT_EL0` | `CNTFRQ_EL0` claims 1 GHz | median **42**, min 41 (the 1 GHz is fiction) | 0.43 ns unserialized, **16.6 ns serialized** |
+
+`bench/clock.hpp` reports the **median** consecutive-read delta, not the minimum:
+median **42.000 ns**, minimum **17.000 ns**, both reproducible to three decimal
+places across five independent runs. The median is published because it is the
+typical inter-tick gap and therefore the honest floor for any single measurement.
+
+Getting that measurement right took two corrections, both worth recording:
+
+1. **The first version reported only the minimum**, which is outlier-sensitive and
+   optimistic. A harness quoting 17 ns as "its resolution" would understate its own
+   error bars by 2.5x.
+2. **The measurement itself was unsound.** It used the *unserialized* read, and two
+   bare `mrs` instructions can complete out of order relative to each other, so the
+   delta does not reflect elapsed time. The reported resolution swung between 1 ns
+   and 42 ns across runs of the same binary. Measuring with `raw_serialized()` - the
+   same read the harness uses for timing - made it exactly reproducible.
+
+### Cross-platform confirmation
+
+The same header, built on both platforms, reports frequencies that differ by 40x
+and resolutions that agree to within one tick:
+
+| Platform | `CNTFRQ_EL0` | ns/tick | Measured median resolution | Serialized read cost |
+|---|---|---|---|---|
+| macOS arm64 (host) | 1,000,000,000 (fiction) | 1.000000 | **42.000 ns** (min 17.000) | 8.7-18.6 ns, varies with machine load; measured and subtracted per run |
+| Linux arm64 (Docker) | 24,000,000 (true) | 41.666667 | **41.667 ns** | 8.84 ns |
+
+That agreement is the evidence that converting through `CNTFRQ_EL0` is correct on
+both, rather than a hardcoded frequency happening to work on one. The serialized
+read (`isb` + `mrs`) costs materially more than the bare read on both, which is why
+the two are measured separately and why only the serialized figure is subtracted
+from latency samples.
 
 **The finest timestamp granularity available on this machine is ~41.67 ns.** The
 target operation costs a few hundred nanoseconds. That ratio is the central
@@ -79,7 +111,7 @@ gate gets disabled, after which nobody notices the real regression.
 
 | Error | Handling |
 |---|---|
-| Clock resolution | Batched measurement for per-op cost; explicit resolution floor on distributions; x86 cross-check |
+| Clock resolution | Batched measurement for per-op cost; explicit resolution floor on distributions; x86 cross-check. **The harness counts what fraction of samples fall below the floor and flags a median that does, rather than printing a sub-resolution percentile as though it meant something.** On this hardware the median operation is faster than the clock can resolve, which is exactly why `batched_ns_per_op` is the figure to trust |
 | Clock call overhead | Measured at startup with a serialized loop, printed, and subtracted. Serialized and unserialized reads are measured and reported separately, because a throughput loop under-reports (the reads pipeline) |
 | Compiler eliding the work | Explicit barriers, plus a guard test asserting a deliberately dead benchmark body does *not* report ~0 ns |
 | Coordinated omission | Open-loop driver: commands issued on a schedule computed in advance, latency measured from *intended* issue time |

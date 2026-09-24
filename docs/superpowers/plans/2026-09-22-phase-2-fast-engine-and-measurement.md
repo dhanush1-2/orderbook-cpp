@@ -398,7 +398,7 @@ Expected: PASS, 7 tests. Read the printed report and confirm it matches the meas
 
 ```bash
 docker run --rm -v "$PWD":/w -w /w alpine:3.20 sh -c \
-  'apk add --no-cache cmake ninja-build g++ git >/dev/null 2>&1 &&
+  'apk add --no-cache cmake ninja g++ git musl-dev >/dev/null 2>&1 &&
    cmake -S . -B /tmp/b -G Ninja -DCMAKE_BUILD_TYPE=Release -DOB_BUILD_BENCH=ON &&
    cmake --build /tmp/b >/dev/null &&
    /tmp/b/tests/ob_tests --gtest_filter=Clock.*'
@@ -848,7 +848,10 @@ TEST(OrderPoolDeathTest, DoubleFreeAborts) {
 TEST(OrderPoolDeathTest, OutOfRangeSlotAborts) {
     GTEST_FLAG_SET(death_test_style, "threadsafe");
     ob::OrderPool p(4);
-    EXPECT_DEATH(p.at(99), "");
+    // at() is [[nodiscard]], so the result must be explicitly discarded even
+    // though this statement never returns. Without the cast this fails the
+    // build under -Werror with -Wunused-result. Found during execution.
+    EXPECT_DEATH(static_cast<void>(p.at(99)), "");
 }
 
 }  // namespace
@@ -3366,7 +3369,7 @@ Expected: no crash, and a growing corpus. Read the reported `cov:` figure; it sh
 
 ```bash
 docker run --rm -v "$PWD":/w -w /w alpine:3.20 sh -c \
-  'apk add --no-cache cmake ninja-build clang lld compiler-rt >/dev/null 2>&1 &&
+  'apk add --no-cache cmake ninja clang lld compiler-rt >/dev/null 2>&1 &&
    CC=clang CXX=clang++ cmake -S . -B /tmp/bf -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
      -DOB_BUILD_FUZZ=ON -DOB_BUILD_TESTS=OFF &&
    cmake --build /tmp/bf &&
@@ -4587,7 +4590,7 @@ OUT="${OB_PROFILE_OUT:-bench/results/profile}"
 mkdir -p "$OUT"
 
 docker run --rm --privileged -v "$PWD":/w -w /w alpine:3.20 sh -euc '
-  apk add --no-cache cmake ninja-build g++ perf >/dev/null 2>&1
+  apk add --no-cache cmake ninja g++ perf >/dev/null 2>&1
 
   cmake -S . -B /tmp/bp -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DOB_BUILD_BENCH=ON -DOB_BUILD_TESTS=OFF \
@@ -4645,7 +4648,7 @@ OUT="${OB_CG_OUT:-bench/results/cachegrind}"
 mkdir -p "$OUT"
 
 docker run --rm -v "$PWD":/w -w /w alpine:3.20 sh -euc '
-  apk add --no-cache cmake ninja-build g++ valgrind >/dev/null 2>&1
+  apk add --no-cache cmake ninja g++ valgrind >/dev/null 2>&1
   cmake -S . -B /tmp/bc -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DOB_BUILD_BENCH=ON -DOB_BUILD_TESTS=OFF >/dev/null
   cmake --build /tmp/bc >/dev/null
@@ -5066,7 +5069,7 @@ chmod +x scripts/check_regression.py
 
 ```bash
 docker run --rm -v "$PWD":/w -w /w alpine:3.20 sh -euc '
-  apk add --no-cache cmake ninja-build g++ valgrind python3 >/dev/null 2>&1
+  apk add --no-cache cmake ninja g++ valgrind python3 >/dev/null 2>&1
   cmake -S . -B /tmp/bc -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DOB_BUILD_BENCH=ON -DOB_BUILD_TESTS=OFF >/dev/null
   cmake --build /tmp/bc >/dev/null
