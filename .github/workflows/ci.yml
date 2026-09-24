@@ -36,6 +36,12 @@ jobs:
             cxx: g++
             build_type: Debug
             extra: "-DOB_ENABLE_INVARIANTS=ON"
+          - name: linux-clang-tsan
+            os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+            build_type: Debug
+            extra: "-DCMAKE_CXX_FLAGS=-fsanitize=thread -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread"
           - name: macos-clang-release
             os: macos-latest
             cc: clang
@@ -61,6 +67,8 @@ jobs:
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -DOB_WARNINGS_AS_ERRORS=ON
+          -DOB_BUILD_BENCH=ON
+          -DOB_BUILD_TOOLS=ON
           ${{ matrix.extra }}
 
       - name: Build

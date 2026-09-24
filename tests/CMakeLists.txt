@@ -19,6 +19,10 @@ add_executable(ob_tests
     test_fast_engine.cpp
     test_differential.cpp
     test_scenarios.cpp
+    test_seqlock.cpp
+    test_l2_snapshot.cpp
+    test_tui.cpp
+    test_publisher_isolation.cpp
     test_histogram.cpp
     test_order_pool.cpp
     test_id_index.cpp
@@ -27,6 +31,10 @@ add_executable(ob_tests
     test_fast_engine.cpp
     test_differential.cpp
     test_scenarios.cpp
+    test_seqlock.cpp
+    test_l2_snapshot.cpp
+    test_tui.cpp
+    test_publisher_isolation.cpp
     test_order_pool.cpp
     test_id_index.cpp
     test_level_bitmap.cpp
@@ -34,6 +42,10 @@ add_executable(ob_tests
     test_fast_engine.cpp
     test_differential.cpp
     test_scenarios.cpp
+    test_seqlock.cpp
+    test_l2_snapshot.cpp
+    test_tui.cpp
+    test_publisher_isolation.cpp
     test_types.cpp
     test_command_events.cpp
     test_event_buffer.cpp

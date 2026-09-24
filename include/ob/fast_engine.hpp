@@ -16,6 +16,7 @@
 #include <ob/engine_concept.hpp>
 #include <ob/id_index.hpp>
 #include <ob/invariants.hpp>
+#include <ob/l2_snapshot.hpp>
 #include <ob/price_ladder.hpp>
 
 namespace ob {
@@ -62,6 +63,29 @@ public:
         });
         asks_.for_each(pool_, [&fn](Ticks px, const Order& o) {
             fn(RestingOrder{Side::Sell, px, o.id, o.remaining, 0});
+        });
+    }
+
+    // Fills a caller-provided snapshot. Allocates nothing, walks at most kDepth
+    // levels per side via for_each_level, and stops early. O(depth), not O(orders),
+    // so it is safe to call from the matching thread on every command.
+    void snapshot_l2(L2Snapshot& out) const noexcept {
+        out.seq        = seq_;
+        out.bid_levels = 0;
+        out.ask_levels = 0;
+        bids_.for_each_level([&out](Ticks px, const PriceLevel& lv) {
+            if (out.bid_levels >= L2Snapshot::kDepth) {
+                return false;
+            }
+            out.bids[out.bid_levels++] = L2Level{px, lv.count, lv.total};
+            return true;
+        });
+        asks_.for_each_level([&out](Ticks px, const PriceLevel& lv) {
+            if (out.ask_levels >= L2Snapshot::kDepth) {
+                return false;
+            }
+            out.asks[out.ask_levels++] = L2Level{px, lv.count, lv.total};
+            return true;
         });
     }
 

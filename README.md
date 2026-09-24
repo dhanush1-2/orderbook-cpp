@@ -4,11 +4,13 @@ A limit order book and matching engine in C++20. Price-time priority, five order
 types, deterministic event output, and a measurement harness built to survive
 someone attacking it.
 
-**Status: Phase 2 complete.** `FastEngine` matches at **28.8 ns per operation /
+**Status: Phases 1-3 complete.** `FastEngine` matches at **28.8 ns per operation /
 34.8 M ops per second** on the realistic workload and **9.8 ns / 102 M ops per
 second** on the cancel-heavy one, agrees with the reference engine over 10^7
 generated operations plus coverage-guided fuzzing, and carries a documented
-optimization arc including the candidate that was measured and rejected.
+optimization arc including the candidate that was measured and rejected. A live
+terminal depth ladder renders from replayed flow without being able to slow the
+matching thread.
 
 ## What it does
 
@@ -26,7 +28,7 @@ optimization arc including the candidate that was measured and rejected.
 
 | Check | Result |
 |---|---|
-| Test count | **188 passing**, 2.2 s |
+| Test count | **209 passing** |
 | Edge-case table | **40 cases** covering spec E1–E49, run against **both** engines via one type list |
 | Invariants after every operation | 100,000 operations across 25 seeds, clean |
 | Full ladder occupancy | 65,536 levels filled, both extremes, clean |
@@ -35,6 +37,8 @@ optimization arc including the candidate that was measured and rejected.
 | Differential vs reference | **10,000,000 operations**, zero divergence, 1.4 s |
 | Fuzzing | **73,977 units**, zero crashes |
 | Instruction-count gate | Deterministic to **+0.000%**; 2% threshold |
+| ThreadSanitizer | **Clean** (verified TSan detects a control race first) |
+| Publisher isolation | A reader that **dies mid-publication** cannot block the writer |
 
 Five layers, weakest to strongest:
 
@@ -134,6 +138,44 @@ done
 ```
 
 Both lines must be identical.
+
+## Live view
+
+```
+  ORDER BOOK   seq 93
+     10002         526     9  ##################################
+     10001         165     3  ##########
+     10000          62     1  ####
+  ------- spread 1 -------
+      9999         162     5  ##########
+      9998         283     5  ##################
+
+  commands 72           trades 8             2.0 K ops/s   ctrl-c to quit
+```
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DOB_BUILD_BENCH=ON -DOB_BUILD_TOOLS=ON
+cmake --build build
+./build/tools/ob_replay --scenario mixed_realistic --ops 200000 --rate 5000 --tui
+```
+
+The render thread reads a **seqlock**: the matching thread publishes a top-15 depth
+snapshot and never waits for a reader. A reader that catches a write in progress
+retries and sees a newer frame; a reader that stops entirely is indistinguishable
+from one that never existed. That last claim is a test, not a comment
+(`tests/test_publisher_isolation.cpp`), because it is the only thing that makes
+attaching a viewer to a latency-sensitive engine defensible.
+
+Measured: no reader 9.33 M ops/s, reader killed mid-publication 7.72 M, reader
+spinning hard 5.00 M. The seqlock guarantees the writer never *waits*; a reader
+still competes for a core and memory bandwidth, and that competition is what the
+second and third numbers show. Publishing a snapshot on every command costs 4.4x
+the bare engine, which is why a real feed publishes on change.
+
+The TUI is hand-rolled ANSI rather than a widget library, keeping the
+standard-library-only rule. Terminal restoration is verified on both the normal exit
+and the SIGINT path, because a tool that leaves your terminal in raw mode with the
+cursor hidden is user-hostile.
 
 ## Design
 

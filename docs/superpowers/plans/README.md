@@ -62,14 +62,16 @@ Copied verbatim from the spec. Every task's requirements implicitly include thes
 | Phase | Written | Tasks | Executed |
 |---|---|---|---|
 | 1. Foundation and correctness oracle | Yes | 13 | **Complete**, merged to main |
-| 2. Fast engine and measurement | Yes | 15 | **14 of 15 complete**, merged to main. Task 14 (the optimization arc) has its baseline recorded and five motivated candidates documented, but no iterations run |
-| 3. Market data and live demo | Not yet | — | Not started |
-| 4. Wire protocol and ingest (optional) | Not yet | — | Not started |
+| 2. Fast engine and measurement | Yes | 15 | **Complete**, merged to main. The optimization arc landed one change (-30.3%) and rejected one candidate, both documented |
+| 3. Market data and live demo | Yes | 6 | **Complete**, merged to main |
+| 4. Wire protocol and ingest (optional) | Not yet | — | Not started. Nothing in Phases 1-3 depends on it |
 
-**Current state on main:** 188 tests passing, all 40 spec edge cases against both
-engines, 10^7 differential operations with zero divergence, 73,977 fuzz units with
-zero crashes, clean under ASan and UBSan, 28.9 ns per operation and 33.0 M ops/s on
-the realistic workload with zero allocations asserted.
+**Current state on main:** 209 tests passing. All 40 spec edge cases against both
+engines; 10^7 differential operations with zero divergence; 73,977 fuzz units with
+zero crashes; clean under ASan, UBSan and TSan. 28.8 ns per operation and 34.8 M
+ops/s on the realistic workload with zero allocations asserted, after an
+optimization arc that improved the sum of per-op costs by 30.3%. A live terminal
+depth ladder renders from a seqlock that the matching thread never waits on.
 
 Phase 2 additionally carries a pre-verification note: `LevelBitmap` and `IdIndex`
 were compiled and tested against reference models, under ASan and UBSan, before the
