@@ -319,9 +319,26 @@ depends on the machine.
 Single symbol, single thread, in-process. Sizing at construction:
 
 - Order pool: 1 M orders default, configurable. 1 M x 32 B = 32 MB.
-- Price ladder: 65,536 ticks default. 65,536 x 24 B = 1.5 MB, which fits in the
-  4 MB L2 of this machine. This is a deliberate choice, see section 9.2.
-- ID index: sized to 2 x pool capacity, power of two, never rehashed.
+- Price ladder: 65,536 levels x 24 B = 1.5 MB **per side**, so 3 MB for both.
+- ID index: 2^21 entries x 16 B = **33.5 MB** at the default 1 M capacity.
+
+**Total allocation at default capacity is therefore ~69 MB, which does not fit in
+the 4 MB L2.** An earlier draft of this document claimed the ladder "fits in L2"
+and that was the wrong thing to measure. What matters is the *touched* working set,
+not the allocation:
+
+| Structure | Allocated | Typically touched |
+|---|---|---|
+| Price ladder | 3 MB | A few dozen levels around the touch, so a few KB |
+| Order pool | 32 MB | Recently allocated slots, which cluster because the free list is LIFO |
+| ID index | 33.5 MB | **Scattered.** SplitMix64 spreads sequential IDs uniformly across all 33.5 MB |
+
+The ID index is the worst offender by a wide margin, and it is scattered *by
+design choice* rather than by necessity: real order IDs arrive sequentially from a
+sequencer, so identity hashing would map them to contiguous buckets and collapse
+the touched footprint to a few cache lines. That is why "replace SplitMix64 with
+identity hashing" is a specific, motivated candidate in the optimization arc rather
+than a guess, and why it has to be measured against scattered fuzzer IDs too.
 
 At 10x the expected order rate the engine does not change: it is a single thread
 doing serial work, and the answer to "what happens at 10x traffic" is "the queue in
@@ -723,7 +740,7 @@ integer, and the seed is printed with every result.
 | **Compiler eliding the work** | Explicit `do_not_optimize` / `clobber_memory` barriers around the measured region. A guard test asserts a deliberately dead benchmark body does *not* report ~0 ns, which catches the barriers silently breaking. |
 | **Coordinated omission** | The throughput driver is **open-loop**: commands are issued on a fixed schedule computed in advance, and latency is measured from *intended* issue time, so queueing delay is counted instead of being absorbed by the driver waiting. |
 | **Cold caches and cold branch predictor** | Fixed warm-up of 100k operations, discarded. The count is published. |
-| **First-touch page faults in the arena** | The pool, ladder and index are fully pre-faulted at construction before any measurement begins. |
+| **First-touch page faults in the arena** | The pool, ladder and index are fully resident from construction: each is a `std::vector` whose value-initializing constructor writes every byte, which faults every page in. There is deliberately no separate `prefault()` step, because it would be a no-op with a reassuring name. |
 | **P-core vs E-core migration** (Apple-specific) | Benchmark thread requests `QOS_CLASS_USER_INTERACTIVE`. macOS has no hard affinity API, so the limitation is documented rather than hidden, and runs showing bimodal distributions are re-run and flagged. |
 | **Thermal throttling / noisy machine** | Each result is median-of-5 independent process runs, with inter-run spread published. A spread over 10% invalidates the run. |
 | **Discarding inconvenient outliers** | Not done. The tail is the product. Max is always published. |

@@ -1160,6 +1160,10 @@ namespace ob {
 
 class ReferenceEngine {
 public:
+    // This engine can afford an arrival sequence per order, so the invariant
+    // checker's FIFO check is enabled for it. FastEngine sets this to false.
+    static constexpr bool kTracksArrival = true;
+
     explicit ReferenceEngine(std::size_t capacity = 1'000'000) : capacity_(capacity) {}
 
     void submit(const Command& c, EventBuffer& out) {
@@ -2889,6 +2893,7 @@ TEST(Invariants, HoldAfterEveryOperationInARandomStream) {
 // checker, and this is the test that proves it works.
 TEST(Invariants, DetectAnInjectedFifoViolation) {
     struct BrokenEngine {
+        static constexpr bool kTracksArrival = true;
         void submit(const ob::Command&, ob::EventBuffer&) {}
         [[nodiscard]] ob::Ticks best_bid() const { return 10000; }
         [[nodiscard]] ob::Ticks best_ask() const { return ob::kNoPrice; }
@@ -2910,6 +2915,7 @@ TEST(Invariants, DetectAnInjectedFifoViolation) {
 
 TEST(Invariants, DetectAnInjectedCrossedBook) {
     struct CrossedEngine {
+        static constexpr bool kTracksArrival = true;
         void submit(const ob::Command&, ob::EventBuffer&) {}
         [[nodiscard]] ob::Ticks best_bid() const { return 10010; }
         [[nodiscard]] ob::Ticks best_ask() const { return 10000; }
@@ -2997,7 +3003,11 @@ struct RestingOrder {
     Ticks   price;
     OrderId id;
     Qty     remaining;
-    Seq     arrival;  // strictly increasing in arrival order
+    // Arrival order, strictly increasing. Meaningful only when the engine sets
+    // E::kTracksArrival; FastEngine reports 0 because its Order struct is exactly
+    // 32 bytes with no room for it, and its FIFO order is instead established by
+    // the intrusive list structure plus differential testing against this engine.
+    Seq     arrival;
 };
 ```
 
@@ -3016,6 +3026,7 @@ struct RestingOrder {
 #include <ob/engine_concept.hpp>
 
 #include <cstddef>
+#include <type_traits>
 #include <unordered_set>
 #include <vector>
 
@@ -3025,6 +3036,9 @@ template <class E>
 concept Inspectable = Engine<E> && requires(const E e) {
     { e.live_order_count() } -> std::same_as<std::size_t>;
     e.for_each_resting([](const RestingOrder&) {});
+    // Whether RestingOrder::arrival is meaningful. Compile-time, so the FIFO check
+    // below simply does not exist for engines that cannot afford to track it.
+    { std::bool_constant<E::kTracksArrival>{} } -> std::same_as<std::bool_constant<E::kTracksArrival>>;
 };
 
 struct InvariantResult {
@@ -3072,9 +3086,14 @@ template <Inspectable E>
         }
 
         // 5. Within a price level, arrival sequence strictly increases (FIFO).
+        //    Only checkable on engines that track arrival order. For engines that
+        //    do not, FIFO is established by their own structural invariants plus
+        //    differential testing, not here.
         if (in_level && o.side == cur_side && o.price == cur_price) {
-            if (o.arrival <= last_arrival) {
-                return {false, "FIFO order violated within a price level"};
+            if constexpr (E::kTracksArrival) {
+                if (o.arrival <= last_arrival) {
+                    return {false, "FIFO order violated within a price level"};
+                }
             }
         } else {
             // 6. Levels are visited best-to-worst within each side.
@@ -4009,6 +4028,8 @@ Run after the plan is complete, before execution.
 **Spec coverage.** Spec section 5.3 lists E1–E47. E1–E8 and E10–E38 are rows in the Task 10 table. E9 is `Stress.EveryTickInARange...` (Task 12). E39 is in Tasks 6 and 8. E43 and E44 are Task 12 and the Task 13 determinism job. E46 and E47 are Task 4. E14, E40, E41, E42 and E45 are accounted for in the Task 10 coverage note, four of them deferred to Plan 2 by design and one unreachable through this API. Spec sections 8 (measurement), 5.6 (performance) and 5.8's L2 additions are Plans 2 and 3 and are out of this plan's scope by construction.
 
 **Placeholder scan.** No "TBD", no "add appropriate error handling", no "similar to Task N". Every code step carries the actual code it needs.
+
+**Compile-time capability flag.** `E::kTracksArrival` is required by `Inspectable` and consumed by an `if constexpr` in `check_invariants`. `ReferenceEngine` sets it true. Plan 2's `FastEngine` sets it false, because `Order` is exactly 32 bytes with no room for an arrival sequence, and adding a parallel array would put a cold-line store on the hot path for the benefit of a debug-only check. FastEngine's FIFO order is established instead by its own intrusive-list structural invariants and by differential testing against this engine.
 
 **Type consistency.** `submit(const Command&, EventBuffer&)`, `best_bid()`, `best_ask()`, `reset()`, `live_order_count()`, `for_each_resting(Fn&&)` are spelled identically in the concept (Task 4), the engine (Tasks 5–11), the invariant checker (Task 11) and the harness (Task 12). `RestingOrder` is declared in `types.hpp`, not `invariants.hpp`, specifically to avoid a circular include between the engine and the checker. `Expect`/`Case` field names match their use in the Task 10 runner. `GenConfig` field names match `generate_stream`'s body.
 

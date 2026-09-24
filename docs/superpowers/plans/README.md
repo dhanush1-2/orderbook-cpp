@@ -9,8 +9,8 @@ never shipping.
 
 | Plan | Produces | End state |
 |---|---|---|
-| **1. Foundation and correctness oracle** | Build system, CI, core types, `ReferenceEngine`, the E1–E45 edge-case suite, invariant checker, scenario generator with shrinker, golden determinism tests | A correct, fully tested matching engine with green CI. Slow, and known to be slow. **Nothing is optimized yet, and nothing needs to be for this to be worth reading.** |
-| **2. Fast engine and the measurement story** | `OrderPool`, `IdIndex`, `LevelBitmap`, `PriceLadder`, `FastEngine`, the latency/throughput harness, the six scenarios, profiling, the documented optimization arc, the Cachegrind CI gate | The headline result: published distributions, a before/after log, and a regression gate. This is the plan that carries the project. |
+| **[1. Foundation and correctness oracle](2026-09-22-plan-1-foundation-and-oracle.md)** | Build system, CI, core types, `ReferenceEngine`, the E1–E45 edge-case suite, invariant checker, scenario generator with shrinker, golden determinism tests | A correct, fully tested matching engine with green CI. Slow, and known to be slow. **Nothing is optimized yet, and nothing needs to be for this to be worth reading.** |
+| **[2. Fast engine and the measurement story](2026-09-22-plan-2-fast-engine-and-measurement.md)** | `OrderPool`, `IdIndex`, `LevelBitmap`, `PriceLadder`, `FastEngine`, the latency/throughput harness, the six scenarios, profiling, the documented optimization arc, the Cachegrind CI gate | The headline result: published distributions, a before/after log, and a regression gate. This is the plan that carries the project. |
 | **3. Market data and live demo** | `Seqlock`, `L2Snapshot`, the L2 publisher, the replay tool, the TUI | A live depth ladder driven by replayed flow, with a test proving a stalled reader cannot slow the matching thread. |
 | **4. Wire protocol and ingest** *(optional, see spec O1)* | Fixed-layout binary decoder, zero-copy parse, busy-poll ingest loop, parser fuzz target | Order entry over a binary protocol. Nothing in Plans 1–3 depends on this. |
 
@@ -56,3 +56,17 @@ Copied verbatim from the spec. Every task's requirements implicitly include thes
 - **Nothing is pushed to a remote without explicit approval** (spec O3).
 - **Dependencies:** GoogleTest (tests only), FTXUI (TUI tool only). The engine,
   harness and fuzz targets depend on the standard library alone.
+
+## Status
+
+| Plan | Written | Tasks | TDD steps | Executed |
+|---|---|---|---|---|
+| 1. Foundation and correctness oracle | Yes | 13 | 77 | No |
+| 2. Fast engine and measurement | Yes | 15 | 85 | No |
+| 3. Market data and live demo | Not yet | — | — | No |
+| 4. Wire protocol and ingest (optional) | Not yet | — | — | No |
+
+Plan 2 additionally carries a pre-verification note: `LevelBitmap` and `IdIndex`
+were compiled and tested against reference models, under ASan and UBSan, before the
+plan was committed. A failure in those two during execution is a transcription
+error, not an algorithm error.
