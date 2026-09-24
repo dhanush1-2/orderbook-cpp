@@ -10,3 +10,5 @@ callgrind.out.*
 cachegrind.out.*
 bench/results/*.raw
 .DS_Store
+fuzz/corpus/
+fuzz/crash-*
