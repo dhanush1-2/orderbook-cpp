@@ -848,7 +848,10 @@ TEST(OrderPoolDeathTest, DoubleFreeAborts) {
 TEST(OrderPoolDeathTest, OutOfRangeSlotAborts) {
     GTEST_FLAG_SET(death_test_style, "threadsafe");
     ob::OrderPool p(4);
-    EXPECT_DEATH(p.at(99), "");
+    // at() is [[nodiscard]], so the result must be explicitly discarded even
+    // though this statement never returns. Without the cast this fails the
+    // build under -Werror with -Wunused-result. Found during execution.
+    EXPECT_DEATH(static_cast<void>(p.at(99)), "");
 }
 
 }  // namespace
