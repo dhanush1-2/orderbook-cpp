@@ -137,6 +137,15 @@ Stated rather than buried:
   quietly dropped.
 - **No Instruments locally.** Native profiling is `sample`; real profiles come from
   `perf` in Docker.
+- **The instruction-count gate is blind to locality optimizations.** It counts
+  instructions, deterministically, which is what makes it usable on a shared runner.
+  But an optimization that trades ALU work for better memory behaviour executes
+  *more* instructions while running faster, and the gate reads that as a regression.
+  This is not hypothetical: it is exactly what happened to the `IdIndex` blocked
+  hash, which is 30% faster and would fail the gate. What the gate reliably catches
+  is instruction-count regressions; what it cannot see is the category of
+  optimization that matters most on a memory-bound engine. Wall-clock results, taken
+  locally with the median-of-5 protocol, are the check for that category.
 - **`ASAN_OPTIONS=detect_leaks=1` does not work on macOS.** LeakSanitizer is
   unsupported there and aborts every test. The CI ASan job is Linux-only, where it
   works; locally the option is omitted.

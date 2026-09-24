@@ -1,4 +1,5 @@
 {
+  "_STALE": "Recorded with the SplitMix64 hash. The default is now the blocked hash (see docs/OPTIMIZATION-LOG.md entries 2 and 3), which executes MORE instructions while being 30% faster. Re-record with scripts/check_regression.py --update before trusting the gate.",
   "ops": 200000,
   "capacity": 262144,
   "instructions": {

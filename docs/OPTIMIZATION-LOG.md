@@ -72,23 +72,140 @@ the per-operation figure comes from an untimestamped batched loop and the
 distribution is used only for tail shape. An earlier version of the harness
 reported the instrumented figure as though it were the engine's cost.
 
-## Candidates, motivated and not yet measured
+
+## 1. Identity hashing in `IdIndex` — **REVERTED**
+
+**Hypothesis:** the ID index is the largest touched footprint in the engine, and
+SplitMix64 scatters sequential IDs across all of it. Real order IDs arrive
+sequentially from a sequencer, so identity hashing should map them to contiguous
+buckets and collapse the footprint.
+
+**Profile evidence:** not a sampling profile — a direct experiment on the
+hypothesis, which is stronger for a locality question. Holding the workload fixed
+and varying only the engine capacity (and therefore the index size):
+
+| capacity | index size | `cancel_heavy` ns/op | vs smallest |
+|---|---|---|---|
+| 16,384 | 0.5 MB | 7.6 | — |
+| 262,144 | 8 MB | 8.6 | 1.1x |
+| 1,000,000 | 32 MB | 21.8 | **2.9x** |
+| 4,000,000 | 128 MB | 33.0 | **4.3x** |
+
+A 4.3x swing from capacity alone, with identical work. The engine is memory-bound
+on this table, and ~14 of the 21.8 ns at default capacity is cache-miss cost.
+
+**Change:** `hash(id) { return id; }`, selectable via `OB_IDINDEX_HASH_IDENTITY`.
+
+**Result:** median of 3 runs, 1.5 M ops per scenario, default 1 M capacity.
+
+| scenario | SplitMix64 | identity | change |
+|---|---|---|---|
+| `rest_only` | 23.1 ns | 7.5 ns | **-67.3%** |
+| `cross_shallow` | 25.0 ns | 11.6 ns | **-53.6%** |
+| `cross_deep` | 34.3 ns | 21.7 ns | **-36.7%** |
+| `cancel_heavy` | 21.5 ns | 7.0 ns | **-67.3%** |
+| `mixed_realistic` | 31.9 ns | 20.6 ns | **-35.5%** |
+| `worst_case_sweep` | 32.8 ns | 125.3 ns | **+281.4%** |
+| **sum** | 168.6 ns | 193.7 ns | **+14.9%** |
+
+**Regressions:** `worst_case_sweep` is 3.8x slower, which makes the change a net
+loss despite five large wins.
+
+**Why, mechanically:** identity hashing maps consecutive IDs to *consecutive
+buckets*, so a run of live sequential IDs is a contiguous run of occupied buckets.
+Backward-shift deletion over a contiguous run is O(run length). `worst_case_sweep`
+holds 400+ consecutive live IDs, so every erase shifts hundreds of entries.
+**Identity hashing trades O(1) deletion for O(1) locality.** Correctness was never
+in question: 188 tests and 10^7 differential operations passed.
+
+**Decision: REVERTED.** Tail latency is the product in this domain, and a 3.8x
+regression on the adversarial scenario is not a trade worth taking for a better
+median. Superseded by entry 2, which was only findable by understanding *why* this
+one failed.
+
+## 2. Blocked hashing in `IdIndex` — **KEPT**
+
+**Hypothesis:** entry 1 failed because contiguous runs make deletion O(run length).
+Keep the locality but *bound* the run: take the low 4 bits of the bucket from the ID
+so 16 consecutive IDs land in 16 consecutive buckets, and scramble the block index
+so different blocks land far apart. Runs are then bounded at ~16 regardless of how
+many orders are live.
+
+**Profile evidence:** the capacity experiment above, plus the mechanism established
+by entry 1's failure. This candidate was not in the original list; it came from the
+failure.
+
+**Change:**
+```cpp
+static constexpr unsigned kBlockShift = 4;  // 16 ids x 16 B = 256 B = 2 cache lines
+return (splitmix(id >> kBlockShift) << kBlockShift) | (id & ((1u << kBlockShift) - 1));
+```
+
+**Result:** same campaign, median of 3.
+
+| scenario | SplitMix64 | blocked | change |
+|---|---|---|---|
+| `rest_only` | 23.1 ns | 13.3 ns | **-42.3%** |
+| `cross_shallow` | 25.0 ns | 15.1 ns | **-39.6%** |
+| `cross_deep` | 34.3 ns | 27.3 ns | **-20.4%** |
+| `cancel_heavy` | 21.5 ns | 9.9 ns | **-53.8%** |
+| `mixed_realistic` | 31.9 ns | 26.4 ns | **-17.3%** |
+| `worst_case_sweep` | 32.8 ns | 25.4 ns | **-22.5%** |
+| **sum** | 168.6 ns | 117.4 ns | **-30.3%** |
+
+**Regressions: none.** Faster on all six scenarios.
+
+**Verification before the numbers were believed:** 188 tests, 10^7 differential
+operations against `ReferenceEngine`, and ASan + UBSan, all clean.
+
+**Decision: KEPT, and made the default.** SplitMix64 and identity remain selectable
+via CMake so the A/B stays reproducible.
+
+## 3. The instruction-count gate cannot see this optimization — a methodology limit
+
+Recorded because it is a limitation of this project's own CI gate, and finding it
+was more useful than the optimization.
+
+The blocked hash executes **more** instructions per lookup than SplitMix64 — the
+same multiply-xor chain plus a shift, an and, and an or — while being **30% faster**,
+because it trades ALU work for cache locality. The Cachegrind gate counts
+instructions with `--cache-sim=no`. **It would therefore flag entry 2 as a
+regression.**
+
+That is not a bug in the gate; it is the price of choosing a deterministic metric.
+The gate exists because wall-clock on a shared CI runner varies by tens of percent,
+and a flaky gate gets disabled. What it buys is reliable detection of
+instruction-count regressions. What it cannot see is any optimization that trades
+instructions for memory behaviour — which, on this engine, is the category that
+matters most.
+
+**Consequences, all now true of the repo:**
+
+- `bench/baselines/instructions.json` is **stale**: it was recorded with SplitMix64.
+  It must be re-recorded with `--update` before the gate is meaningful again.
+- The gate's description in `docs/METHODOLOGY.md` now states this blind spot.
+- A rise in instruction count accompanied by a wall-clock *improvement* is a valid
+  reason to re-baseline, and the commit message must say so.
+
+Re-baselining requires Docker, which was unavailable when this entry was written.
+**Marked as outstanding rather than silently skipped.**
+
+## Remaining candidates, motivated and not yet measured
 
 Each is motivated by something already established, not by intuition. The procedure
 for every one is the rules above.
 
-1. **Identity hashing in `IdIndex`.** The index is 33.5 MB at the default capacity
-   and SplitMix64 scatters sequential IDs across all of it, making it the largest
-   touched footprint in the engine. Real order IDs arrive sequentially, so identity
-   hashing would map them to contiguous buckets. **Must be measured against
-   scattered fuzzer IDs too**; if sequential wins big and scattered loses badly, the
-   honest outcome is to keep SplitMix64 and record that the tradeoff was measured.
-2. **Cached best-price cursor.** `best()` queries the bitmap on every call. Requires
+1. **Cached best-price cursor.** `best()` queries the bitmap on every call. Requires
    a debug assert comparing the cache against the bitmap, or it is a stale-cache bug
    waiting to happen.
-3. **Prefetch the next order during a sweep.** `match_into` walks an intrusive list
+2. **Prefetch the next order during a sweep.** `match_into` walks an intrusive list
    by index, so the next address is a dependent load. Expect it to help `cross_deep`
    and `worst_case_sweep` and do nothing for `cross_shallow`.
-4. **Branch hints on the dominant path.** Measure with Cachegrind `--branch-sim=yes`
+3. **Branch hints on the dominant path.** Measure with Cachegrind `--branch-sim=yes`
    as well as wall-clock: the instruction count may barely move while mispredicts do.
-5. **Fuse index erase with pool free.** Only if a profile supports it.
+4. **Fuse index erase with pool free.** Only if a profile supports it.
+
+5. **Tune `kBlockShift`.** Entry 2 picked 4 (16 ids per block) on the reasoning that
+   256 bytes spans two 128-byte cache lines and bounds the deletion run at ~16. It
+   was never swept. 3, 5 and 6 are all plausible and the optimum is workload
+   dependent.

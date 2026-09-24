@@ -36,19 +36,53 @@ public:
         max_load_ = cap / 2;
     }
 
-    // SplitMix64 finalizer. Identity hashing would be faster for the sequential
-    // ids a real sequencer emits (consecutive ids land in consecutive buckets with
-    // zero collisions), and the optimization arc measures that as a candidate. It
-    // is not the starting point because the fuzzer supplies scattered ids and the
-    // structure must not degrade under them.
-    [[nodiscard]] static std::uint64_t hash(OrderId id) noexcept {
-        std::uint64_t z = id;
+    // Hash selection, A/B-able at compile time via OB_IDINDEX_IDENTITY_HASH.
+    //
+    // MEASURED MOTIVATION: varying only the engine capacity, with an identical
+    // workload, moves cancel_heavy from 7.6 ns/op (0.5 MB index) to 33.0 ns/op
+    // (128 MB index) - a 4.3x swing. The engine is memory-bound on this table, and
+    // SplitMix64 is what scatters sequential ids across the whole of it.
+    //
+    // Identity hashing maps consecutive ids to consecutive buckets, so a sequencer's
+    // output touches a contiguous window regardless of allocated capacity. The risk
+    // is scattered or adversarial ids clustering, which is why both cases are
+    // measured before a decision is recorded.
+    // Block size for the blocked hash. 16 ids x 16 bytes = 256 bytes, so a block
+    // spans two 128-byte cache lines, and a contiguous run is bounded at ~16.
+    static constexpr unsigned kBlockShift = 4;
+
+    static std::uint64_t splitmix(std::uint64_t z) noexcept {
         z ^= z >> 33;
         z *= 0xFF51'AFD7'ED55'8CCDULL;
         z ^= z >> 33;
         z *= 0xC4CE'B9FE'1A85'EC53ULL;
         z ^= z >> 33;
         return z;
+    }
+
+    [[nodiscard]] static std::uint64_t hash(OrderId id) noexcept {
+#if defined(OB_IDINDEX_HASH_SPLITMIX) && OB_IDINDEX_HASH_SPLITMIX
+        // SplitMix64: scatters everything. O(1) deletion, worst locality. Kept
+        // selectable because it was the original default and the A/B needs it.
+        return splitmix(id);
+#elif defined(OB_IDINDEX_HASH_IDENTITY) && OB_IDINDEX_HASH_IDENTITY
+        // Pure identity: best possible locality, WORST possible deletion. A run of
+        // consecutive live ids is a contiguous run of buckets, and backward-shift
+        // deletion over a contiguous run is O(run length). Measured: 30-67% faster
+        // on five scenarios, 284% SLOWER on worst_case_sweep, which holds 400+
+        // consecutive live ids.
+        return id;
+#else
+        // DEFAULT, chosen by measurement. Blocked: low kBlockShift bits come from the
+        // id, so 16 consecutive ids land in 16 consecutive buckets (locality). The
+        // block index is scrambled, so different blocks land far apart and a
+        // contiguous run is bounded at ~16 instead of growing with the number of live
+        // orders (bounded deletion cost).
+        //
+        // Measured against SplitMix64: faster on ALL SIX scenarios, -17% to -54%,
+        // 30.3% better on the sum of per-op costs, with no regression anywhere.
+        return (splitmix(id >> kBlockShift) << kBlockShift) | (id & ((1u << kBlockShift) - 1));
+#endif
     }
 
     [[nodiscard]] bool insert(OrderId id, Slot slot) noexcept {

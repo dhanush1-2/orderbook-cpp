@@ -26,54 +26,58 @@ accessible on this hardware, in Docker, or on GitHub runners.
 
 ## Per-operation cost and throughput
 
-| scenario | engine ns/op | throughput ops/s | events/s | allocations |
-|---|---|---|---|---|
-| `rest_only` | 32.4 | 59,403,269 | 59,403,269 | 0 |
-| `cross_shallow` | 25.3 | 46,113,166 | 115,282,915 | 0 |
-| `cross_deep` | 30.3 | 30,288,068 | 65,964,201 | 0 |
-| `cancel_heavy` | 23.4 | 53,153,430 | 53,153,430 | 0 |
-| `mixed_realistic` | **28.9** | **32,971,501** | 51,033,999 | 0 |
-| `worst_case_sweep` | 31.8 | 35,226,899 | 105,585,355 | 0 |
+Median of **5 independent process runs**; the spread column is published and any
+scenario over 10% invalidates the run (`scripts/run_bench.sh` exits non-zero, and it
+did reject a first attempt at 12.49% before these numbers were taken).
 
-The allocations column is not decoration: it is asserted to be zero and the harness
-exits non-zero otherwise.
+| scenario | engine ns/op | throughput ops/s | spread | p99 ns | p99.9 ns | vs reference |
+|---|---|---|---|---|---|---|
+| `rest_only` | 7.7 | 129,580,257 | 4.21% | 149 | 232 | 10.8x |
+| `cross_shallow` | 14.3 | 69,750,381 | 5.78% | 107 | 149 | 2.7x |
+| `cross_deep` | 25.7 | 38,972,512 | 1.88% | 482 | 1024 | 3.8x |
+| `cancel_heavy` | 9.8 | 102,519,541 | 3.77% | 107 | 149 | 3.7x |
+| `mixed_realistic` | **28.8** | **34,761,566** | 7.48% | 148 | 190 | 195.1x |
+| `worst_case_sweep` | 25.1 | 39,863,770 | 2.18% | 107 | 5440 | 3.7x |
 
-## Latency distribution (service time, nanoseconds)
+Zero allocations in every measured window, asserted; the harness exits non-zero
+otherwise.
 
-| scenario | p99 | p99.9 | p99.99 | max | below clock floor |
-|---|---|---|---|---|---|
-| `rest_only` | 149 | 232 | 566 | 22,353 | 6.4% |
-| `cross_shallow` | 149 | 191 | 233 | 17,912 | 34.1% |
-| `cross_deep` | 274 | 648 | 1,733 | 27,328 | 21.8% |
-| `cancel_heavy` | 149 | 191 | 233 | 23,621 | 41.7% |
-| `mixed_realistic` | 149 | 232 | 233 | 27,079 | 15.6% |
-| `worst_case_sweep` | 149 | 3,440 | 3,900 | 16,103 | 22.3% |
+`worst_case_sweep`'s p99.9 of 5.4 us is the 400-level sweep doing exactly what it is
+designed to do. The multi-microsecond maxima are OS scheduling, published rather than
+trimmed.
 
-`worst_case_sweep`'s p99.9 of 3.4 us is the 400-level sweep doing exactly what it
-is designed to do. The multi-microsecond maxima across all scenarios are OS
-scheduling, not the engine; they are published rather than trimmed.
+### Against the reference implementation
 
-## Against the reference implementation
+**The honest headline for the data-structure work is 2.7x to 10.8x.** The 195x on
+`mixed_realistic` is real but comes from one asymptotic difference: it is the only
+scenario with meaningful FOK volume, and the reference's FOK pre-scan sums individual
+orders (O(orders)) where `FastEngine` sums level totals (O(levels)). Quoting 195x as
+the headline would credit the flat ladder for an algorithmic win.
 
-Measured under the identical harness, not against an absent baseline.
+The reference allocates exactly 2.00 per operation on `rest_only` — the `std::map`
+node plus the `std::list` node per resting order. That is precisely what the arena
+removes.
 
-| scenario | fast ops/s | reference ops/s | speedup | reference allocations/op |
-|---|---|---|---|---|
-| `rest_only` | 59,403,269 | 11,970,051 | 5.0x | 2.00 |
-| `cross_shallow` | 46,113,166 | 25,856,256 | 1.8x | 1.50 |
-| `cross_deep` | 30,288,068 | 10,254,535 | 3.0x | 2.40 |
-| `cancel_heavy` | 53,153,430 | 27,542,450 | 1.9x | 1.50 |
-| `mixed_realistic` | 32,971,501 | 178,206 | 185x | 1.07 |
-| `worst_case_sweep` | 35,226,899 | 10,736,854 | 3.3x | 2.99 |
+### What the optimization bought
 
-**The honest headline is 1.8x to 5.0x.** The 185x on `mixed_realistic` is real but
-comes from one asymptotic difference, not from the data structures: it is the only
-scenario with a meaningful share of FOK orders, and the reference's FOK pre-scan
-sums individual orders (O(orders)) where `FastEngine` sums level totals (O(levels)).
-Quoting 185x as the headline would attribute an algorithmic win to the flat ladder.
+One optimization landed: the `IdIndex` hash. Full reasoning, including the candidate
+that was measured and rejected, is in
+[`docs/OPTIMIZATION-LOG.md`](OPTIMIZATION-LOG.md).
 
-`reference allocations/op` of exactly 2.00 on `rest_only` is the `std::map` node plus
-the `std::list` node per resting order. That is precisely what the arena removes.
+| scenario | SplitMix64 (before) | blocked (after) | change |
+|---|---|---|---|
+| `rest_only` | 23.1 ns | 13.3 ns | -42.3% |
+| `cross_shallow` | 25.0 ns | 15.1 ns | -39.6% |
+| `cross_deep` | 34.3 ns | 27.3 ns | -20.4% |
+| `cancel_heavy` | 21.5 ns | 9.9 ns | -53.8% |
+| `mixed_realistic` | 31.9 ns | 26.4 ns | -17.3% |
+| `worst_case_sweep` | 32.8 ns | 25.4 ns | -22.5% |
+| **sum of ns/op** | 168.6 ns | 117.4 ns | **-30.3%** |
+
+Motivated by a direct experiment rather than intuition: holding the workload fixed
+and varying only the engine capacity moved `cancel_heavy` from 7.6 ns/op (0.5 MB
+index) to 33.0 ns/op (128 MB index), a **4.3x swing**. The engine is memory-bound on
+the ID index.
 
 ## The instrument costs more than the thing measured
 
@@ -91,6 +95,14 @@ load) cost more than the operation between them. The harness prints both figures
 the gap is visible rather than folded into a single number.
 
 ## Deterministic instruction counts (the CI gate)
+
+> **The baseline below is STALE and the gate has a blind spot that matters here.**
+> It was recorded with the SplitMix64 hash. The current default, the blocked hash,
+> executes *more* instructions per lookup while being 30% faster, because it trades
+> ALU work for cache locality. **The gate would flag that optimization as a
+> regression.** That is the price of a deterministic metric, not a bug, and it is
+> written up in [`docs/OPTIMIZATION-LOG.md`](OPTIMIZATION-LOG.md) entry 3.
+> Re-record with `scripts/check_regression.py --update`, which needs Docker.
 
 Cachegrind, `ops=200000`, `capacity=262144`. Determinism measured at **+0.000%**
 across repeat runs, at most ~13 instructions out of 153 million.

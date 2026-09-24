@@ -1,0 +1,6 @@
+{"scenario":"rest_only","engine":"fast","ops":3000000,"seconds":0.022893,"ops_per_sec":131042415,"events_per_sec":131042415,"ns_per_op":7.63,"allocations":0,"capacity":1000000}
+{"scenario":"cross_shallow","engine":"fast","ops":3000000,"seconds":0.042313,"ops_per_sec":70899377,"events_per_sec":177248442,"ns_per_op":14.10,"allocations":0,"capacity":1000000}
+{"scenario":"cross_deep","engine":"fast","ops":3000000,"seconds":0.076977,"ops_per_sec":38972512,"events_per_sec":75441508,"ns_per_op":25.66,"allocations":0,"capacity":1000000}
+{"scenario":"cancel_heavy","engine":"fast","ops":3000000,"seconds":0.029194,"ops_per_sec":102762496,"events_per_sec":102762496,"ns_per_op":9.73,"allocations":0,"capacity":1000000}
+{"scenario":"mixed_realistic","engine":"fast","ops":3000000,"seconds":0.086612,"ops_per_sec":34637045,"events_per_sec":53614127,"ns_per_op":28.87,"allocations":0,"capacity":1000000}
+{"scenario":"worst_case_sweep","engine":"fast","ops":3000000,"seconds":0.075135,"ops_per_sec":39927893,"events_per_sec":119680946,"ns_per_op":25.05,"allocations":0,"capacity":1000000}

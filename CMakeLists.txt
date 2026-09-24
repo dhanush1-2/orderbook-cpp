@@ -17,6 +17,14 @@ option(OB_BUILD_TOOLS        "Build replay and TUI tools"             OFF)
 option(OB_SANITIZE           "Enable ASan + UBSan"                    OFF)
 option(OB_ENABLE_INVARIANTS  "Assert book invariants after every op"   OFF)
 option(OB_WARNINGS_AS_ERRORS "Treat warnings as errors"               OFF)
+# Optimization-arc candidate 1: IdIndex hash function. Measurement showed the engine
+# is memory-bound on this table (4.3x swing from capacity alone), so how ids map to
+# buckets dominates. Three modes, all measured; see docs/OPTIMIZATION-LOG.md.
+# The DEFAULT is the blocked hash, chosen by measurement: faster on all six
+# scenarios than SplitMix64, with no tail regression. These two options select the
+# alternatives so the A/B stays reproducible.
+option(OB_IDINDEX_HASH_SPLITMIX "IdIndex: SplitMix64 (scatter; was the original default)" OFF)
+option(OB_IDINDEX_HASH_IDENTITY "IdIndex: identity (best locality, O(n) erase; rejected)" OFF)
 
 # Warning set. Applied only to our own targets, never to dependencies.
 add_library(ob_warnings INTERFACE)
@@ -42,6 +50,12 @@ target_include_directories(ob INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(ob INTERFACE ob_warnings ob_sanitize)
 if(OB_ENABLE_INVARIANTS)
     target_compile_definitions(ob INTERFACE OB_ENABLE_INVARIANTS=1)
+endif()
+if(OB_IDINDEX_HASH_IDENTITY)
+    target_compile_definitions(ob INTERFACE OB_IDINDEX_HASH_IDENTITY=1)
+endif()
+if(OB_IDINDEX_HASH_SPLITMIX)
+    target_compile_definitions(ob INTERFACE OB_IDINDEX_HASH_SPLITMIX=1)
 endif()
 
 if(OB_BUILD_FUZZ)
