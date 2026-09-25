@@ -23,3 +23,9 @@ target_link_libraries(ob_fuzz_differential PRIVATE ob)
 target_compile_options(ob_fuzz_differential PRIVATE
     -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -g -UNDEBUG)
 target_link_options(ob_fuzz_differential PRIVATE -fsanitize=fuzzer,address,undefined)
+
+add_executable(ob_fuzz_wire_parser fuzz_wire_parser.cpp)
+target_link_libraries(ob_fuzz_wire_parser PRIVATE ob)
+target_compile_options(ob_fuzz_wire_parser PRIVATE
+    -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -g -UNDEBUG)
+target_link_options(ob_fuzz_wire_parser PRIVATE -fsanitize=fuzzer,address,undefined)

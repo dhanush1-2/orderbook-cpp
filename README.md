@@ -4,7 +4,7 @@ A limit order book and matching engine in C++20. Price-time priority, five order
 types, deterministic event output, and a measurement harness built to survive
 someone attacking it.
 
-**Status: Phases 1-3 complete.** `FastEngine` matches at **28.8 ns per operation /
+**Status: all four phases complete.** `FastEngine` matches at **28.8 ns per operation /
 34.8 M ops per second** on the realistic workload and **9.8 ns / 102 M ops per
 second** on the cancel-heavy one, agrees with the reference engine over 10^7
 generated operations plus coverage-guided fuzzing, and carries a documented
@@ -63,14 +63,14 @@ determinism, the seqlock under contention, and the zero-allocation assertion.
 
 | Check | Result |
 |---|---|
-| Test count | **209 passing** |
+| Test count | **222 passing** |
 | Edge-case table | **40 cases** covering spec E1–E49, run against **both** engines via one type list |
 | Invariants after every operation | 100,000 operations across 25 seeds, clean |
 | Full ladder occupancy | 65,536 levels filled, both extremes, clean |
 | Determinism across optimization levels | `-O0` and `-O3` produce the **identical** event-stream digest `d54a7c38cb35f3e3` over 104,880 events |
 | ASan + UBSan | **Clean**, all tests |
 | Differential vs reference | **10,000,000 operations**, zero divergence, 1.4 s |
-| Fuzzing | **73,977 units**, zero crashes |
+| Fuzzing | **73,977** engine units + **146,576** wire-parser units, zero crashes |
 | Instruction-count gate | Deterministic to **+0.000%**; 2% threshold |
 | ThreadSanitizer | **Clean** (verified TSan detects a control race first) |
 | Publisher isolation | A reader that **dies mid-publication** cannot block the writer |
@@ -211,6 +211,29 @@ The TUI is hand-rolled ANSI rather than a widget library, keeping the
 standard-library-only rule. Terminal restoration is verified on both the normal exit
 and the SIGINT path, because a tool that leaves your terminal in raw mode with the
 cursor hidden is user-hostile.
+
+## Order entry over the wire
+
+A fixed-layout little-endian binary protocol, ITCH/OUCH in shape. The length lives
+in the header rather than being implied by the message type, so a decoder can skip a
+message it has never seen instead of losing frame sync.
+
+```bash
+./build/tools/ob_wire_gen    --scenario mixed_realistic --ops 200000 --out orders.bin
+./build/tools/ob_wire_ingest --in orders.bin --buffer 1000
+```
+
+The ingest loop reads into a fixed buffer, decodes every complete message, compacts
+the partial tail and refills. Nothing allocates in the loop and the buffer never
+grows. With a deliberately small 1,000-byte buffer, 200,000 messages produced **4,115
+buffer straddles** and still ended with a book byte-identical to the in-process
+path &mdash; same trade count, same resting orders, same best bid and ask. That
+equivalence is an automated test, not a manual check.
+
+The decoder parses untrusted bytes, so every length is validated against the buffer
+*and* the message type before a field is read, out-of-range enum values are rejected
+rather than cast, and `memcpy` is used instead of `reinterpret_cast` because the wire
+guarantees no alignment. 146,576 fuzz runs against arbitrary bytes, zero crashes.
 
 ## Design
 

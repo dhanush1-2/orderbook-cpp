@@ -167,12 +167,16 @@ jobs:
           CC=clang CXX=clang++ cmake -S . -B build-fuzz -G Ninja \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo -DOB_BUILD_FUZZ=ON -DOB_BUILD_TESTS=OFF
           cmake --build build-fuzz
-      - name: Fuzz from the committed corpus
+      - name: Fuzz the engine differentially
         # detect_leaks=0: libFuzzer's own runtime leaks ~56 bytes at exit on some
         # libcs. A fuzz target whose body is 'return 0;' reports the same leak.
         env:
           ASAN_OPTIONS: detect_leaks=0
-        run: ./build-fuzz/fuzz/ob_fuzz_differential -max_total_time=300 fuzz/corpus_min
+        run: ./build-fuzz/fuzz/ob_fuzz_differential -max_total_time=240 fuzz/corpus_min
+      - name: Fuzz the wire parser
+        env:
+          ASAN_OPTIONS: detect_leaks=0
+        run: ./build-fuzz/fuzz/ob_fuzz_wire_parser -max_total_time=180 fuzz/corpus_wire_min
       - name: Upload any crash
         if: failure()
         uses: actions/upload-artifact@v4
