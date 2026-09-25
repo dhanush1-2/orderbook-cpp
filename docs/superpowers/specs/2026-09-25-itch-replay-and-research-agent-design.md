@@ -245,8 +245,29 @@ starting at the file's beginning it must be zero, and that is a test.
 
 ### 6.3 Per-symbol ladder base and grid
 
-Measured: max per-symbol spread is 9,600 cents, and no sub-penny quoting at or above
-$1. So:
+> **CORRECTED 2026-09-25 after replaying 53.8 M real messages.** An earlier draft of
+> this section claimed "max per-symbol spread is 9,600 cents" and concluded the
+> overflow path "will rarely be taken". **Both claims were wrong**, and the measurement
+> that replaced them changes how much the overflow path matters. The original figure
+> came from a narrow pre-market slice; it did not survive market open.
+
+**What the real data says.** Replaying from the file's first byte to 10:23 clock:
+
+| Fact | Measured |
+|---|---|
+| Median per-symbol price span | **19,999,998 cents ($199,999.98)** |
+| Symbols whose span exceeds 65,536 cents | **6,557 of 8,892 (74%)** |
+| Peak *distinct live levels*, worst of 10 liquid symbols | **5,086** (AMZN) |
+| Peak *live orders*, worst of the same 10 | **34,248** (AMZN) |
+
+The span and the occupancy disagree by four orders of magnitude, and the reason is
+**stub quotes**: market makers meet two-sided quoting obligations by resting a bid near
+$0.01 and an ask near $200,000. Every symbol has them. They are real orders that belong
+in the book, and they are essentially never the best price.
+
+So a flat one-cent ladder cannot span the price range, but it comfortably holds the
+occupancy. The structure is therefore a **window plus an overflow map**, and the
+overflow path is a normal operating mode rather than a theoretical safety net:
 
 ```cpp
 struct SymbolGrid {
@@ -257,11 +278,45 @@ struct SymbolGrid {
 ```
 
 The base is established from the **first priced message** for that symbol, centred so
-the ladder spans equally either side. A price outside the window is a
-`PriceOutOfWindow` event: counted, reported, and the order is tracked in an overflow
-`std::map` rather than dropped. **A silently dropped order corrupts the book, which is
-exactly the failure this design must not have**, so the overflow path exists even
-though measurement says it will rarely be taken. Its hit count is published.
+the ladder spans equally either side. A price outside the window goes to a per-side
+overflow `std::map`, and the hit count is published.
+
+**Measured cost of the window**, as a percentage of adds that land in overflow with a
++/-32,768-cent window around the mid:
+
+| Symbol | Outside | | Symbol | Outside |
+|---|---|---|---|---|
+| BAC | 0.002% | | AAPL | 0.011% |
+| QQQ | 0.003% | | TSLA | **0.701%** |
+| SPY | 0.004% | | AMZN | **6.851%** |
+| MSFT | 0.006% | | F | 0.007% |
+| INTC | 0.008% | | AMD | 0.009% |
+
+Eight of ten are under 0.02%. AMZN is 6.9% because it traded near $1,800 that day, so
+its genuinely-used price range runs from about $1 to $3,000 and no 65,536-cent window
+covers it. **The required window scales with the price level, and the design does not
+pretend otherwise** — it pays a `std::map` insert for those, which is affordable
+precisely because such orders are far from the market and never touch the hot path.
+
+Two consequences that must be implemented, not assumed away:
+
+1. **`best()` must consult the overflow map when the ladder side is empty.** Rare, but
+   a stub quote really is the best bid when nothing else rests. Skipping this reports
+   "no bid" for a book that has one.
+2. **A silently dropped out-of-window order corrupts the book**, which is exactly the
+   failure this design exists to avoid. Overflow is never a drop.
+
+### 6.3b Routing: `stock_locate` is consistent across an order's lifetime
+
+**Measured: 1,421,624 `E`/`C`/`X`/`D`/`U` messages checked, zero cases** where the
+`stock_locate` in the message header disagreed with the `stock_locate` of the `A` that
+created the order reference.
+
+This is load-bearing. It means each symbol's book can own its own order table keyed by
+order reference, and a mutation message can be routed to the right book from its header
+alone, before the order reference is looked up anywhere. Had it been false, the design
+would need one global reference table shared across every book, and the per-book
+filter could not run before the lookup.
 
 ### 6.4 The strongest available oracle
 
