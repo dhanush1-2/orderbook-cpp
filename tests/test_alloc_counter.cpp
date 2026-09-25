@@ -2,6 +2,7 @@
 // global operator new inside the main test binary would perturb GoogleTest itself.
 #include <cstdio>
 #include <ob/fast_engine.hpp>
+#include <ob/sanitizer.hpp>
 #include <vector>
 
 #include "../bench/alloc_counter.hpp"
@@ -16,6 +17,15 @@
     } while (0)
 
 int main() {
+    // The allocator replacement is compiled out under a sanitizer, because the
+    // sanitizer runtime defines the same operators and owns the allocator. Skipping
+    // is the correct outcome, not a gap: the zero-allocation claim is verified by
+    // the ordinary build, which is where it is meaningful.
+    if (ob::kSanitizerBuild) {
+        std::printf("SKIP: sanitizer build owns the allocator\n");
+        return 0;
+    }
+
     // 1. The counter must actually count. The barrier is load-bearing: at -O3 an
     //    unused vector is elided entirely and the allocation never happens, which
     //    made this check fail for the right reason on the first run.

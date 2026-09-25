@@ -18,6 +18,7 @@
 #include <cstring>
 #include <ob/fast_engine.hpp>
 #include <ob/reference_engine.hpp>
+#include <ob/sanitizer.hpp>
 #include <string>
 #include <vector>
 
@@ -193,7 +194,7 @@ void run_scenario(Scenario sc, const Options& opt) {
     // Binds on FastEngine ONLY. ReferenceEngine is supposed to allocate: std::map
     // plus std::list is 2 allocations per resting order, which is exactly what the
     // arena removes.
-    if (!opt.reference && allocs != 0) {
+    if (!ob::kSanitizerBuild && !opt.reference && allocs != 0) {
         std::fprintf(stderr,
                      "FATAL: %zu allocations during the measured window for %s. "
                      "Every number above is contaminated.\n",

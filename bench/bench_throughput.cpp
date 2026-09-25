@@ -9,6 +9,7 @@
 #include <cstring>
 #include <ob/fast_engine.hpp>
 #include <ob/reference_engine.hpp>
+#include <ob/sanitizer.hpp>
 #include <type_traits>
 #include <vector>
 
@@ -80,7 +81,7 @@ void run(Scenario sc, std::size_t ops, std::uint64_t seed, bool reference, std::
     // SUPPOSED to allocate: it uses std::map and std::list, which is exactly 2
     // allocations per resting order (the map node and the list node). Reporting
     // that number is informative, because it is precisely what the arena removes.
-    if (!reference && allocs != 0) {
+    if (!ob::kSanitizerBuild && !reference && allocs != 0) {
         std::fprintf(stderr, "FATAL: %zu allocations during %s\n", allocs, name(sc));
         std::exit(2);
     }

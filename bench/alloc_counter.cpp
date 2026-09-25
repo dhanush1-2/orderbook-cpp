@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdlib>
 #include <new>
+#include <ob/sanitizer.hpp>
 
 namespace {
 // Relaxed atomic rather than a plain size_t: runtime startup can allocate from
@@ -19,6 +20,18 @@ void reset_alloc_count() noexcept {
     g_allocs.store(0, std::memory_order_relaxed);
 }
 }  // namespace ob::bench
+
+// A PROGRAM CANNOT BOTH REPLACE THE GLOBAL ALLOCATOR AND RUN UNDER A SANITIZER
+// THAT OWNS IT. libclang_rt.tsan_cxx and libclang_rt.asan_cxx define these same
+// operators, so defining them here too is a multiple-definition link error on GNU
+// ld. (macOS's two-level namespace resolves it silently, which is why this only
+// surfaced on Linux CI.)
+//
+// Under a sanitizer the replacements are compiled out entirely: alloc_count() then
+// reports 0 and every caller skips its assertion via ob::kSanitizerBuild. That is
+// the honest behaviour anyway - the sanitizer allocates during the measured window,
+// so a zero-allocation assertion there would be meaningless even if it linked.
+#if !defined(OB_SANITIZER_BUILD)
 
 // The full replaceable set. Missing one would pair a counted new with an
 // uncounted delete, which on some libraries is undefined behavior rather than
@@ -87,3 +100,5 @@ void operator delete(void* p, std::size_t, std::align_val_t) noexcept {
 void operator delete[](void* p, std::size_t, std::align_val_t) noexcept {
     std::free(p);
 }
+
+#endif  // !OB_SANITIZER_BUILD

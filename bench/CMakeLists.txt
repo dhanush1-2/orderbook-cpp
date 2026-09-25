@@ -7,7 +7,9 @@ target_link_libraries(ob_bench INTERFACE ob)
 # executables and the dedicated allocation test, never into ob_tests.
 add_library(ob_alloc_counter STATIC alloc_counter.cpp)
 target_include_directories(ob_alloc_counter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ob_alloc_counter PRIVATE ob_warnings)
+# Links ob (INTERFACE) for the include path: alloc_counter.cpp needs
+# ob/sanitizer.hpp to compile its allocator replacement out under a sanitizer.
+target_link_libraries(ob_alloc_counter PRIVATE ob ob_warnings)
 
 add_executable(ob_bench_latency bench_latency.cpp)
 target_link_libraries(ob_bench_latency PRIVATE ob ob_bench ob_alloc_counter)
