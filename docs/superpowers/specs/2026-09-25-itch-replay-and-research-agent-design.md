@@ -369,6 +369,34 @@ in the README rather than buried:
 > Any of these can turn a profitable backtest into a losing strategy. Stating them is
 > not modesty; it is the difference between a research tool and a demo.
 
+#### Measured 2026-09-25: the signal is real, and it is not tradeable
+
+The signal was evaluated before the Phase 7 plan was written, over 30.7 M real messages,
+sampling top-of-book imbalance once a second against forward mid returns:
+
+| Symbol | IC @1s | t-stat | IC @5s | IC @10s | IC @30s | mean abs 1s move | spread |
+|---|---|---|---|---|---|---|---|
+| INTC | **0.256** | 9.0 | 0.119 | 0.084 | −0.037 | 0.69 bps | 5.49 bps |
+| QQQ | **0.123** | 8.8 | 0.079 | 0.048 | 0.021 | 0.24 bps | 1.05 bps |
+| SPY | 0.075 | 3.7 | 0.057 | 0.025 | 0.054 | 0.23 bps | 1.28 bps |
+| MSFT | 0.001 | 0.0 | 0.070 | 0.066 | 0.081 | 0.80 bps | 9.57 bps |
+| AAPL | 0.016 | 0.7 | −0.019 | 0.020 | 0.012 | 0.83 bps | 6.41 bps |
+
+**The predictive content is strongly significant on two of five symbols and absent on
+two others.** It decays fast: INTC runs 0.256 → 0.119 → 0.084 → −0.037 over 1 to 30
+seconds.
+
+**And it cannot be traded by crossing the spread, by a wide margin.** QQQ's entire
+average one-second move is 0.24 bps while half its spread is 0.52 bps. A *perfect*
+forecast still pays more to enter than the move is worth. For AAPL it is 0.83 bps of
+move against 3.2 bps of half-spread.
+
+This changes what Phase 7 delivers. It is not a search for a profitable strategy; it is
+a correct evaluation that reaches a negative conclusion with the evidence attached.
+**A positive net Sharpe under spread-crossing costs is therefore a bug signature**, and
+Phase 7's plan contains a test that fails on one, because the most likely cause is
+lookahead rather than alpha.
+
 ---
 
 ## 7. Failure scenarios

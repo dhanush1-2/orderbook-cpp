@@ -100,8 +100,8 @@ stays as a separate capability.
 |---|---|---|
 | **[5. ITCH 5.0 feed decoder](2026-09-25-phase-5-itch-decoder.md)** | Data acquisition with md5 verification, a zero-copy decoder for all 22 message types, golden-file tests against real bytes, a fuzz target, and an `itch_stat` tool | Real Nasdaq data decodes correctly and at a measured rate. Nothing about the book has changed yet. |
 | **[6. Multi-symbol reconstruction](2026-09-25-phase-6-book-reconstruction.md)** | Per-symbol price grid plus overflow levels, `SymbolRouter` by `stock_locate`, order table keyed by ITCH reference, SPSC parser→book queue, feed-consistency oracle, retargeted benchmarks | The headline: full book for 10 real symbols, verified against the exchange's own trades, with published msgs/sec and per-update latency. |
-| **7. Python bindings and backtest** | pybind11 module, order-book-imbalance signal, fills with fees, Sharpe / max drawdown / turnover, and a written list of what the backtest does not model | A researcher can drive the C++ engine from Python and get honest numbers. |
-| **8. MCP research agent** | `replay`, `book_snapshot`, `run_backtest`, `explain_pnl`, returning structured evidence rather than prose | An LLM can answer "why did this signal lose money on Tuesday?" from tool output alone, and every claim is checkable. |
+| **[7. Python bindings and backtest](2026-09-25-phase-7-python-bindings-and-backtest.md)** | pybind11 module, order-book-imbalance signal, fills with fees, Sharpe / max drawdown / turnover, and a written list of what the backtest does not model | A researcher can drive the C++ engine from Python and get honest numbers. |
+| **[8. MCP research agent](2026-09-25-phase-8-mcp-research-agent.md)** | `replay`, `book_snapshot`, `run_backtest`, `explain_pnl`, returning structured evidence rather than prose | An LLM can answer "why did this signal lose money on Tuesday?" from tool output alone, and every claim is checkable. |
 
 ## Two measured facts that shaped the design
 
@@ -132,8 +132,8 @@ broken the existing engine silently:
 |---|---|---|
 | 5 | Yes | Every code block compiled under Clang and GCC 13 and run against 354,869 real messages: 853,843 assertions, 0 failures, clean under ASan and UBSan. Found 5 defects in the plan. |
 | 6 | Yes | Tasks 1–3's code compiled and run the same way: 1,211,422 assertions, 0 failures, `-Werror` clean on both compilers. Every design fact measured by replaying 53.8 M real messages. Found 2 defects in the plan and 1 in the spec. |
-| 7 | Not yet | |
-| 8 | Not yet | |
+| 7 | Yes | The signal was measured first: order-book imbalance over 30.7 M real messages gives IC 0.256 (t=9.0) on INTC and 0.123 (t=8.8) on QQQ, and is **not tradeable** — QQQ's mean 1s move is 0.24 bps against 0.52 bps of half-spread. The plan is built around that negative result. |
+| 8 | Yes | Every assertion in its tests traces to a number measured in Phases 5-7. |
 
 **The spec was corrected once during planning.** Its claim that the maximum per-symbol
 price spread is 9,600 cents came from a pre-market slice and does not survive market
