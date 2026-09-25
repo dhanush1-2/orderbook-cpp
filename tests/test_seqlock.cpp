@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <ob/sanitizer.hpp>
 #include <ob/seqlock.hpp>
 #include <thread>
 #include <vector>
@@ -78,7 +79,12 @@ TEST(Seqlock, ReadersNeverObserveATornPayload) {
         t.join();
     }
 
-    EXPECT_GT(reads.load(), 1000u) << "readers barely ran; the test proved nothing";
+    // The no-tearing assertion is the point and runs everywhere. The read-count
+    // floor only exists to catch a test that silently did nothing, and under a
+    // sanitizer - 20-50x slower, with deliberately perturbed scheduling, on a CI
+    // runner with fewer cores - it measures the sanitizer rather than the seqlock.
+    EXPECT_GT(reads.load(), ob::kSanitizerBuild ? 10u : 1000u)
+        << "readers barely ran; the test proved nothing";
     EXPECT_EQ(torn.load(), 0u) << "a reader observed a torn payload";
 }
 

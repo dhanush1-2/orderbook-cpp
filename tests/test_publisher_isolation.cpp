@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <ob/fast_engine.hpp>
 #include <ob/l2_snapshot.hpp>
+#include <ob/sanitizer.hpp>
 #include <ob/seqlock.hpp>
 #include <thread>
 #include <vector>
@@ -66,7 +67,8 @@ double measure(Reader mode, std::size_t ops) {
         reader.join();
     }
     if (mode == Reader::Hot) {
-        EXPECT_GT(reads.load(), 100u) << "the hot reader barely ran; the test proved nothing";
+        EXPECT_GT(reads.load(), ob::kSanitizerBuild ? 5u : 100u)
+            << "the hot reader barely ran; the test proved nothing";
     }
     return static_cast<double>(ops) / secs;
 }
@@ -83,14 +85,29 @@ TEST(PublisherIsolation, AStalledReaderDoesNotSlowTheWriter) {
     std::printf("publisher isolation: no reader %.2f M ops/s, stalled %.2f, hot %.2f\n", none / 1e6,
                 dead / 1e6, hot / 1e6);
 
-    // A reader that died must be indistinguishable from never having existed.
-    // Generous bound because this runs on a shared machine, but a lock-based
-    // publisher would fail this by orders of magnitude or hang outright.
-    EXPECT_GT(dead, none * 0.6) << "a stalled reader slowed the writer";
+    // THE correctness property - the run completed at all, with no hang and no
+    // deadlock - holds everywhere. If the writer took a lock the reader held, these
+    // measurements would never have returned.
+    EXPECT_GT(none, 0.0);
+    EXPECT_GT(dead, 0.0);
+    EXPECT_GT(hot, 0.0);
 
-    // A hot reader legitimately consumes a core, so some slowdown is expected and
-    // fine. What must not happen is collapse.
-    EXPECT_GT(hot, none * 0.3) << "a busy reader collapsed writer throughput";
+    // The RATIOS are performance assertions and are skipped under a sanitizer.
+    // TSan slows execution 20-50x and perturbs thread scheduling on purpose; a CI
+    // runner also has fewer cores than the machine these bounds were chosen on. A
+    // throughput ratio measured there describes the sanitizer, not the seqlock, and
+    // asserting on it produces a flaky gate - which is worse than no gate, because
+    // a flaky gate gets disabled.
+    if constexpr (!ob::kSanitizerBuild) {
+        // A reader that died must be indistinguishable from never having existed.
+        // Generous bound because this runs on a shared machine, but a lock-based
+        // publisher would fail this by orders of magnitude or hang outright.
+        EXPECT_GT(dead, none * 0.6) << "a stalled reader slowed the writer";
+
+        // A hot reader legitimately consumes a core, so some slowdown is expected
+        // and fine. What must not happen is collapse.
+        EXPECT_GT(hot, none * 0.3) << "a busy reader collapsed writer throughput";
+    }
 }
 
 TEST(PublisherIsolation, PublicationCostIsBoundedAndSnapshotsStayConsistent) {
@@ -128,8 +145,11 @@ TEST(PublisherIsolation, PublicationCostIsBoundedAndSnapshotsStayConsistent) {
                 published, published / bare);
 
     // Publishing a 15-level snapshot per command is not free, but it must not be
-    // catastrophic. Real feeds publish on change, not on every command.
-    EXPECT_LT(published, bare * 12.0) << "publication dominates the engine";
+    // catastrophic. Real feeds publish on change, not on every command. Skipped
+    // under a sanitizer for the same reason as the ratios above.
+    if constexpr (!ob::kSanitizerBuild) {
+        EXPECT_LT(published, bare * 12.0) << "publication dominates the engine";
+    }
 
     // And whatever was last published must be self-consistent.
     ob::L2Snapshot got{};
