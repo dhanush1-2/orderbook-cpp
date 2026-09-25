@@ -41,7 +41,9 @@ TEST(Tui, AsksAppearAboveTheSpreadAndBidsBelow) {
 }
 
 TEST(Tui, ClampsToATinyTerminalWithoutOverrunning) {
-    for (const auto [r, c] : {std::pair{1, 1}, std::pair{2, 10}, std::pair{3, 19}}) {
+    // const auto& not const auto: GCC 13's -Wrange-loop-construct flags the copy a
+    // structured binding by value makes here.
+    for (const auto& [r, c] : {std::pair{1, 1}, std::pair{2, 10}, std::pair{3, 19}}) {
         const std::string f = ob::tui::render(two_sided(), r, c, 0, 0, 0);
         EXPECT_NE(f.find("too small"), std::string::npos) << r << "x" << c;
     }
