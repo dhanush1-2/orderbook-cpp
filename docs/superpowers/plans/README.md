@@ -98,8 +98,8 @@ stays as a separate capability.
 
 | Phase | Produces | End state |
 |---|---|---|
-| **5. ITCH 5.0 feed decoder** | Data acquisition with md5 verification, a zero-copy decoder for all 22 message types, golden-file tests against real bytes, a fuzz target, and an `itch_stat` tool | Real Nasdaq data decodes correctly and at a measured rate. Nothing about the book has changed yet. |
-| **6. Multi-symbol reconstruction** | Per-symbol ladder base and grid, `SymbolRouter` over 10 shards, SPSC parser→book queue, feed-consistency oracle, retargeted benchmarks | The headline: full book for 10 real symbols, verified against the exchange's own trades, with published msgs/sec and per-update latency. |
+| **[5. ITCH 5.0 feed decoder](2026-09-25-phase-5-itch-decoder.md)** | Data acquisition with md5 verification, a zero-copy decoder for all 22 message types, golden-file tests against real bytes, a fuzz target, and an `itch_stat` tool | Real Nasdaq data decodes correctly and at a measured rate. Nothing about the book has changed yet. |
+| **[6. Multi-symbol reconstruction](2026-09-25-phase-6-book-reconstruction.md)** | Per-symbol price grid plus overflow levels, `SymbolRouter` by `stock_locate`, order table keyed by ITCH reference, SPSC parser→book queue, feed-consistency oracle, retargeted benchmarks | The headline: full book for 10 real symbols, verified against the exchange's own trades, with published msgs/sec and per-update latency. |
 | **7. Python bindings and backtest** | pybind11 module, order-book-imbalance signal, fills with fees, Sharpe / max drawdown / turnover, and a written list of what the backtest does not model | A researcher can drive the C++ engine from Python and get honest numbers. |
 | **8. MCP research agent** | `replay`, `book_snapshot`, `run_backtest`, `explain_pnl`, returning structured evidence rather than prose | An LLM can answer "why did this signal lose money on Tuesday?" from tool output alone, and every claim is checkable. |
 
@@ -125,3 +125,17 @@ broken the existing engine silently:
 | 6. Multi-symbol reconstruction | Outline | Not started |
 | 7. Python bindings and backtest | Outline | Not started |
 | 8. MCP research agent | Outline | Not started |
+
+### Plan status, Part II
+
+| Phase | Plan written | Verified how |
+|---|---|---|
+| 5 | Yes | Every code block compiled under Clang and GCC 13 and run against 354,869 real messages: 853,843 assertions, 0 failures, clean under ASan and UBSan. Found 5 defects in the plan. |
+| 6 | Yes | Tasks 1–3's code compiled and run the same way: 1,211,422 assertions, 0 failures, `-Werror` clean on both compilers. Every design fact measured by replaying 53.8 M real messages. Found 2 defects in the plan and 1 in the spec. |
+| 7 | Not yet | |
+| 8 | Not yet | |
+
+**The spec was corrected once during planning.** Its claim that the maximum per-symbol
+price spread is 9,600 cents came from a pre-market slice and does not survive market
+open: the median symbol spans 19,999,998 cents because every symbol carries stub quotes
+near $0.01 and $200,000. See spec section 6.3.
