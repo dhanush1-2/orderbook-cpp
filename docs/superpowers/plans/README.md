@@ -79,3 +79,49 @@ Phase 2 additionally carries a pre-verification note: `LevelBitmap` and `IdIndex
 were compiled and tested against reference models, under ASan and UBSan, before the
 plan was committed. A failure in those two during execution is a transcription
 error, not an algorithm error.
+
+
+---
+
+# Part II: ITCH replay and the research agent
+
+**Spec:** [`../specs/2026-09-25-itch-replay-and-research-agent-design.md`](../specs/2026-09-25-itch-replay-and-research-agent-design.md)
+
+Phases 1–4 built a verified matching engine. Part II turns it into a research stack
+that runs on **real Nasdaq ITCH 5.0 data**, with an LLM agent on top.
+
+**The conceptual shift:** ITCH replay is book **reconstruction**, not matching. The
+feed carries the exchange's own `OrderExecuted` messages, so the engine applies
+events rather than deciding fills. The storage (ladder, bitmap, pool, index) and the
+entire test and measurement apparatus carry over; the matching logic does not, and
+stays as a separate capability.
+
+| Phase | Produces | End state |
+|---|---|---|
+| **5. ITCH 5.0 feed decoder** | Data acquisition with md5 verification, a zero-copy decoder for all 22 message types, golden-file tests against real bytes, a fuzz target, and an `itch_stat` tool | Real Nasdaq data decodes correctly and at a measured rate. Nothing about the book has changed yet. |
+| **6. Multi-symbol reconstruction** | Per-symbol ladder base and grid, `SymbolRouter` over 10 shards, SPSC parser→book queue, feed-consistency oracle, retargeted benchmarks | The headline: full book for 10 real symbols, verified against the exchange's own trades, with published msgs/sec and per-update latency. |
+| **7. Python bindings and backtest** | pybind11 module, order-book-imbalance signal, fills with fees, Sharpe / max drawdown / turnover, and a written list of what the backtest does not model | A researcher can drive the C++ engine from Python and get honest numbers. |
+| **8. MCP research agent** | `replay`, `book_snapshot`, `run_backtest`, `explain_pnl`, returning structured evidence rather than prose | An LLM can answer "why did this signal lose money on Tuesday?" from tool output alone, and every claim is checkable. |
+
+## Two measured facts that shaped the design
+
+Both came from decoding a real file before any code was written, and both would have
+broken the existing engine silently:
+
+1. **Order reference numbers are not monotonic** — 12,731 of 47,970 real AddOrder
+   messages (26.5%) are non-increasing. The predecessor's `id <= high_water_`
+   duplicate rule would reject a quarter of all orders. Spec 6.2 removes it and
+   explains why a replay engine does not need it.
+2. **Prices span $0.0004 to $100,000** at 4 implied decimals, which is 10^9 levels
+   against a 65,536-entry ladder. But the worst per-symbol spread is **9,600 cents**,
+   and there is zero sub-penny quoting at or above $1 (SEC Rule 612). So the ladder
+   array is already the right size; it needs a per-symbol base and grid. Spec 6.3.
+
+## Status
+
+| Phase | Written | Executed |
+|---|---|---|
+| 5. ITCH decoder | Yes | Not started |
+| 6. Multi-symbol reconstruction | Outline | Not started |
+| 7. Python bindings and backtest | Outline | Not started |
+| 8. MCP research agent | Outline | Not started |
