@@ -78,7 +78,23 @@ jobs:
         env:
           ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-        run: ctest --test-dir build --output-on-failure --timeout 900
+        # Tee to a file so a failure can be surfaced in the job SUMMARY below.
+        # Actions logs need a sign-in to read; the summary is public, which matters
+        # for an open-source repo where a contributor should be able to see why
+        # their build failed without an account.
+        run: |
+          set -o pipefail
+          ctest --test-dir build --output-on-failure --timeout 900 2>&1 | tee ctest.log
+      - name: Publish failure details to the run summary
+        if: failure()
+        run: |
+          {
+            echo "## \`${{ matrix.name }}\` failed"
+            echo
+            echo '```'
+            tail -120 ctest.log 2>/dev/null || echo "no ctest.log; the BUILD failed"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   determinism:
     name: determinism across builds (E44)
