@@ -219,7 +219,7 @@ inline std::vector<Command> build(Scenario s, std::uint64_t seed, std::size_t n)
                     const bool  buy = (rng.bounded(2) == 0);
                     const Ticks off = geometric_offset(rng, 200) + 1;
                     c               = make_new(id++, buy ? Side::Buy : Side::Sell, OrderType::Limit,
-                                               buy ? kMid - off : kMid + off, 10);
+                                 buy ? kMid - off : kMid + off, 10);
                 }
                 resting.apply(c);
                 out.push_back(c);

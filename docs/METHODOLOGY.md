@@ -137,6 +137,15 @@ Stated rather than buried:
   quietly dropped.
 - **No Instruments locally.** Native profiling is `sample`; real profiles come from
   `perf` in Docker.
+- **Instruction counts are architecture-specific, so the gate needs a per-machine
+  baseline.** The committed `bench/baselines/instructions.json` is keyed by
+  architecture and holds the arm64 measurement. It cannot gate x86-64 CI, and
+  valgrind segfaults under x86-64 emulation on Apple Silicon, so an x86-64 baseline
+  cannot be produced on this hardware at all. CI therefore carries its own baseline
+  in the Actions cache: the first run records it, later runs compare against the most
+  recent. That gates the question that matters - did this commit get slower than the
+  last one - without a checked-in x86-64 measurement. An earlier version compared an
+  arm64 baseline against x86-64 CI, which could never have passed.
 - **The instruction-count gate is blind to locality optimizations.** It counts
   instructions, deterministically, which is what makes it usable on a shared runner.
   But an optimization that trades ALU work for better memory behaviour executes

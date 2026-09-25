@@ -97,9 +97,9 @@ inline std::vector<ob::Command> generate_stream(std::uint64_t seed, std::size_t 
         }
 
         const ob::Ticks span = cfg.half_width * 2 + 1;
-        const ob::Ticks px = cfg.centre - cfg.half_width +
+        const ob::Ticks px   = cfg.centre - cfg.half_width +
                              static_cast<ob::Ticks>(rng.bounded(static_cast<std::uint64_t>(span)));
-        const ob::Qty   qty =
+        const ob::Qty qty =
             1 + static_cast<ob::Qty>(rng.bounded(static_cast<std::uint64_t>(cfg.max_qty)));
 
         out.push_back(ob::make_new(next_id, side, type, px, qty));

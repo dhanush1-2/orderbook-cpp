@@ -11,11 +11,19 @@ and a flaky gate gets disabled, after which nobody notices the real regression.
 import argparse
 import json
 import pathlib
+import platform
 import re
 import subprocess
 import sys
 
 THRESHOLD = 0.02  # 2% rise fails the build
+
+# Instruction counts are ARCHITECTURE-SPECIFIC. The same source compiled for arm64
+# and x86-64 executes a different number of instructions, so one flat baseline
+# cannot serve both. An earlier version stored a single set recorded on arm64 and
+# compared it against x86-64 CI, which could never have passed. The baseline is
+# therefore keyed by machine architecture, and a run against an architecture with no
+# recorded baseline says so instead of failing as a phantom regression.
 
 SCENARIOS = ["rest_only", "cross_shallow", "cross_deep",
              "cancel_heavy", "mixed_realistic", "worst_case_sweep"]
@@ -48,6 +56,8 @@ def main() -> int:
                     help="overwrite the baseline with the measured values")
     args = ap.parse_args()
 
+    arch = platform.machine()
+    print(f"architecture: {arch}\n")
     measured = {s: measure(args.binary, s, args.ops, args.capacity)
                 for s in SCENARIOS}
     total_ops = args.ops
@@ -57,15 +67,23 @@ def main() -> int:
     path = pathlib.Path(args.baseline)
     if args.update or not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"ops": args.ops, "capacity": args.capacity,
-                                    "instructions": measured},
-                                   indent=2) + "\n")
-        print(f"\nbaseline written to {path}")
+        existing = json.loads(path.read_text()) if path.exists() else {}
+        arches = existing.get("arch", {})
+        arches[arch] = {"ops": args.ops, "capacity": args.capacity,
+                        "instructions": measured}
+        path.write_text(json.dumps({"arch": arches}, indent=2) + "\n")
+        print(f"\nbaseline for {arch} written to {path}")
         return 0
 
-    baseline = json.loads(path.read_text())
+    doc = json.loads(path.read_text())
+    if "arch" not in doc or arch not in doc["arch"]:
+        print(f"\nNo baseline recorded for architecture '{arch}'. Instruction counts "
+              f"are architecture-specific, so this is not a regression - it is a "
+              f"missing measurement. Record it with --update on this machine.")
+        return 0
+    baseline = doc["arch"][arch]
     if baseline["ops"] != args.ops or baseline.get("capacity") != args.capacity:
-        sys.exit(f"baseline was taken at ops={baseline['ops']} "
+        sys.exit(f"baseline for {arch} was taken at ops={baseline['ops']} "
                  f"capacity={baseline.get('capacity')}, this run used ops={args.ops} "
                  f"capacity={args.capacity}; counts are not comparable")
 

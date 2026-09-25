@@ -1,13 +1,16 @@
 {
-  "_STALE": "Recorded with the SplitMix64 hash. The default is now the blocked hash (see docs/OPTIMIZATION-LOG.md entries 2 and 3), which executes MORE instructions while being 30% faster. Re-record with scripts/check_regression.py --update before trusting the gate.",
-  "ops": 200000,
-  "capacity": 262144,
-  "instructions": {
-    "rest_only": 109189249,
-    "cross_shallow": 106083493,
-    "cross_deep": 112140532,
-    "cancel_heavy": 239501132,
-    "mixed_realistic": 279468533,
-    "worst_case_sweep": 126761251
+  "arch": {
+    "aarch64": {
+      "ops": 200000,
+      "capacity": 262144,
+      "instructions": {
+        "rest_only": 116692858,
+        "cross_shallow": 106478552,
+        "cross_deep": 140991820,
+        "cancel_heavy": 237229935,
+        "mixed_realistic": 282710396,
+        "worst_case_sweep": 166103438
+      }
+    }
   }
 }
