@@ -23,6 +23,7 @@ add_executable(ob_tests
     test_l2_snapshot.cpp
     test_tui.cpp
     test_publisher_isolation.cpp
+    test_wire.cpp
     test_histogram.cpp
     test_order_pool.cpp
     test_id_index.cpp
@@ -35,6 +36,7 @@ add_executable(ob_tests
     test_l2_snapshot.cpp
     test_tui.cpp
     test_publisher_isolation.cpp
+    test_wire.cpp
     test_order_pool.cpp
     test_id_index.cpp
     test_level_bitmap.cpp
@@ -46,6 +48,7 @@ add_executable(ob_tests
     test_l2_snapshot.cpp
     test_tui.cpp
     test_publisher_isolation.cpp
+    test_wire.cpp
     test_types.cpp
     test_command_events.cpp
     test_event_buffer.cpp
