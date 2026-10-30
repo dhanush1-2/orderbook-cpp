@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(ob_tests
     test_smoke.cpp
+    test_spsc_ring.cpp
     test_clock.cpp
     test_histogram.cpp
     test_order_pool.cpp
@@ -81,4 +82,8 @@ if(OB_BUILD_BENCH)
     target_link_libraries(ob_test_alloc_counter PRIVATE ob ob_alloc_counter)
     target_compile_options(ob_test_alloc_counter PRIVATE -UNDEBUG)
     add_test(NAME alloc_counter COMMAND ob_test_alloc_counter)
+endif()
+
+if(OB_BUILD_TOOLS)
+    add_test(NAME ring_stress COMMAND ob_ring_stress --items 10000000)
 endif()
