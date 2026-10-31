@@ -7,7 +7,7 @@ target_include_directories(ob_replay PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR})
 
-foreach(t ob_wire_gen ob_wire_ingest)
+foreach(t ob_wire_gen ob_wire_ingest ob_ring_stress)
     string(REPLACE "ob_" "" src ${t})
     add_executable(${t} ${src}.cpp)
     target_link_libraries(${t} PRIVATE ob)
